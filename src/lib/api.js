@@ -1,5 +1,5 @@
-export const TMDB_KEY = '541a30f6f7977d15275fca78a90832b4' // get tmdb api key free at https://www.themoviedb.org/settings/api
-export const EMBED_API_KEY = 'nx_0bfce6c7cfa538f05d6fb93ee5e75700' // get movie api key at https://api.codespecters.com/api
+export const TMDB_KEY = import.meta.env.VITE_TMDB_KEY
+export const EMBED_API_KEY = import.meta.env.VITE_EMBED_API_KEY // get movie api key at https://api.codespecters.com/api
 export const EMBED_BASE = 'https://api.codespecters.com'
 export const IMG_BASE = 'https://image.tmdb.org/t/p/w300'
 export const IMG_BASE_LG = 'https://image.tmdb.org/t/p/w780'
