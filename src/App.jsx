@@ -29,7 +29,6 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <InstallButton />
         <button className={styles.logo} onClick={goHome} aria-label="Go to home">
           <span className={styles.logoAccent}>Dowatch</span><span className={styles.logoDot}>·</span>24
         </button>
