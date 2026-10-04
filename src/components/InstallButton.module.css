@@ -131,27 +131,3 @@
   }
 }
 
-/* Mobile */
-@media (max-width: 600px) {
-  .installCard {
-    right: 12px !important;
-    bottom: 12px !important;
-    left: 12px !important;
-
-    width: auto;
-
-    padding: 15px;
-  }
-
-  .content strong {
-    font-size: 13px;
-  }
-
-  .content span {
-    font-size: 10px;
-  }
-
-  .installButton {
-    padding: 9px 12px;
-  }
-}
