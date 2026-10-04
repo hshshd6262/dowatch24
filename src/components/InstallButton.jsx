@@ -12,14 +12,14 @@ export default function InstallButton() {
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true
-
     if (isStandalone) return
 
     const dismissedUntil = localStorage.getItem(DISMISS_KEY)
+    if (dismissedUntil && Date.now() < Number(dismissedUntil)) return
 
-    if (dismissedUntil && Date.now() < Number(dismissedUntil)) {
-      return
-    }
+    // only one instance may own the install card
+    if (window.__installCardOwner) return
+    window.__installCardOwner = true
 
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault()
@@ -27,43 +27,13 @@ export default function InstallButton() {
       setVisible(true)
     }
 
-    window.addEventListener(
-      'beforeinstallprompt',
-      handleBeforeInstallPrompt
-    )
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
     return () => {
-      window.removeEventListener(
-        'beforeinstallprompt',
-        handleBeforeInstallPrompt
-      )
+      window.__installCardOwner = false
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     }
   }, [])
-
-  async function installApp() {
-    if (!installPrompt) return
-
-    installPrompt.prompt()
-
-    const result = await installPrompt.userChoice
-
-    if (result.outcome === 'accepted') {
-      setVisible(false)
-      setInstallPrompt(null)
-    }
-  }
-
-  function closeBanner() {
-    setVisible(false)
-
-    const dismissUntil =
-      Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000
-
-    localStorage.setItem(
-      DISMISS_KEY,
-      String(dismissUntil)
-    )
-  }
 
   useEffect(() => {
     const handleAppInstalled = () => {
@@ -72,18 +42,25 @@ export default function InstallButton() {
       localStorage.removeItem(DISMISS_KEY)
     }
 
-    window.addEventListener(
-      'appinstalled',
-      handleAppInstalled
-    )
-
-    return () => {
-      window.removeEventListener(
-        'appinstalled',
-        handleAppInstalled
-      )
-    }
+    window.addEventListener('appinstalled', handleAppInstalled)
+    return () => window.removeEventListener('appinstalled', handleAppInstalled)
   }, [])
+
+  async function installApp() {
+    if (!installPrompt) return
+
+    installPrompt.prompt()
+    await installPrompt.userChoice
+
+    setVisible(false)
+    setInstallPrompt(null)
+  }
+
+  function closeBanner() {
+    setVisible(false)
+    const dismissUntil = Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000
+    localStorage.setItem(DISMISS_KEY, String(dismissUntil))
+  }
 
   if (!visible || !installPrompt) return null
 
@@ -99,16 +76,10 @@ export default function InstallButton() {
 
       <div className={styles.content}>
         <strong>Install dowatch24</strong>
-
-        <span>
-          Add dowatch24 to your device for quick access.
-        </span>
+        <span>Add dowatch24 to your device for quick access.</span>
       </div>
 
-      <button
-        className={styles.installButton}
-        onClick={installApp}
-      >
+      <button className={styles.installButton} onClick={installApp}>
         Install App
       </button>
     </div>
