@@ -9,14 +9,12 @@ export default function InstallButton() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    // Don't show the website install banner if already installed.
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true
 
     if (isStandalone) return
 
-    // Don't show again if the user recently dismissed it.
     const dismissedUntil = localStorage.getItem(DISMISS_KEY)
 
     if (dismissedUntil && Date.now() < Number(dismissedUntil)) {
@@ -25,9 +23,7 @@ export default function InstallButton() {
 
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault()
-
       setInstallPrompt(event)
-      setVisible(true)
     }
 
     window.addEventListener(
@@ -35,7 +31,7 @@ export default function InstallButton() {
       handleBeforeInstallPrompt
     )
 
-    // Give Chrome a moment to fire beforeinstallprompt.
+    // Always show our custom popup.
     const timer = setTimeout(() => {
       setVisible(true)
     }, 1500)
@@ -51,9 +47,7 @@ export default function InstallButton() {
   }, [])
 
   async function installApp() {
-    if (!installPrompt) {
-      return
-    }
+    if (!installPrompt) return
 
     installPrompt.prompt()
 
@@ -84,10 +78,7 @@ export default function InstallButton() {
       localStorage.removeItem(DISMISS_KEY)
     }
 
-    window.addEventListener(
-      'appinstalled',
-      handleAppInstalled
-    )
+    window.addEventListener('appinstalled', handleAppInstalled)
 
     return () => {
       window.removeEventListener(
@@ -104,7 +95,7 @@ export default function InstallButton() {
       <button
         className={styles.close}
         onClick={closeBanner}
-        aria-label="Close install message"
+        aria-label="Close"
       >
         ×
       </button>
@@ -117,7 +108,7 @@ export default function InstallButton() {
         <strong>Install dowatch24</strong>
 
         <span>
-          Get quick access without opening your browser.
+          Add dowatch24 to your device for quick access.
         </span>
       </div>
 
