@@ -1,25 +1,43 @@
 import { useEffect, useState } from 'react'
 import styles from './InstallButton.module.css'
 
+const DISMISS_KEY = 'dowatch24_install_dismissed'
+const DISMISS_DAYS = 7
+
 export default function InstallButton() {
   const [installPrompt, setInstallPrompt] = useState(null)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    // Don't show the website install banner if already installed.
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+
+    if (isStandalone) return
+
+    // Don't show again if the user recently dismissed it.
+    const dismissedUntil = localStorage.getItem(DISMISS_KEY)
+
+    if (dismissedUntil && Date.now() < Number(dismissedUntil)) {
+      return
+    }
+
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault()
+
       setInstallPrompt(event)
       setVisible(true)
     }
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener(
+      'beforeinstallprompt',
+      handleBeforeInstallPrompt
+    )
 
-    // Show the card after the page loads.
-    // The actual Install button only works when Chrome provides the prompt.
+    // Give Chrome a moment to fire beforeinstallprompt.
     const timer = setTimeout(() => {
-      if (!window.matchMedia('(display-mode: standalone)').matches) {
-        setVisible(true)
-      }
+      setVisible(true)
     }, 1500)
 
     return () => {
@@ -27,13 +45,13 @@ export default function InstallButton() {
         'beforeinstallprompt',
         handleBeforeInstallPrompt
       )
+
       clearTimeout(timer)
     }
   }, [])
 
   async function installApp() {
     if (!installPrompt) {
-      alert('Use Chrome’s Install button in the address bar to install dowatch24.')
       return
     }
 
@@ -47,26 +65,67 @@ export default function InstallButton() {
     }
   }
 
+  function closeBanner() {
+    setVisible(false)
+
+    const dismissUntil =
+      Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000
+
+    localStorage.setItem(
+      DISMISS_KEY,
+      String(dismissUntil)
+    )
+  }
+
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      setVisible(false)
+      setInstallPrompt(null)
+      localStorage.removeItem(DISMISS_KEY)
+    }
+
+    window.addEventListener(
+      'appinstalled',
+      handleAppInstalled
+    )
+
+    return () => {
+      window.removeEventListener(
+        'appinstalled',
+        handleAppInstalled
+      )
+    }
+  }, [])
+
   if (!visible) return null
 
   return (
     <div className={styles.installCard}>
       <button
         className={styles.close}
-        onClick={() => setVisible(false)}
-        aria-label="Close"
+        onClick={closeBanner}
+        aria-label="Close install message"
       >
         ×
       </button>
 
-      <div className={styles.icon}>▶</div>
+      <div className={styles.icon}>
+        ▶
+      </div>
 
       <div className={styles.content}>
         <strong>Install dowatch24</strong>
-        <span>Get quick access from your desktop.</span>
+
+        <span>
+          Get quick access without opening your browser.
+        </span>
       </div>
 
-      <button className={styles.installButton} onClick={installApp}>
+      <button
+        className={styles.installButton}
+        onClick={installApp}
+        disabled={!installPrompt}
+      >
         Install App
       </button>
     </div>

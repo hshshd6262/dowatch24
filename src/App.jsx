@@ -1,3 +1,4 @@
+import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
 import React, { useState } from 'react'
 import Movies from './pages/Movies.jsx'
@@ -28,6 +29,7 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
+        <InstallButton />
         <button className={styles.logo} onClick={goHome} aria-label="Go to home">
           <span className={styles.logoAccent}>Dowatch</span><span className={styles.logoDot}>·</span>24
         </button>
@@ -66,6 +68,7 @@ export default function App() {
     © dowatch24
   </p>
 </footer>
+<InstallButton />
     </div>
   )
 }
