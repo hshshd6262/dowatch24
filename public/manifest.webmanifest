@@ -1,0 +1,18 @@
+{
+  "name": "dowatch24",
+  "short_name": "dowatch24",
+  "description": "Watch movies and TV series online.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#e50914",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

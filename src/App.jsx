@@ -1,3 +1,4 @@
+import Hero from './components/Hero.jsx'
 import React, { useState } from 'react'
 import Movies from './pages/Movies.jsx'
 import TV from './pages/TV.jsx'
@@ -28,7 +29,7 @@ export default function App() {
     <div className={styles.app}>
       <header className={styles.header}>
         <button className={styles.logo} onClick={goHome} aria-label="Go to home">
-          <span className={styles.logoAccent}>cine</span><span className={styles.logoDot}>·</span>scope
+          <span className={styles.logoAccent}>Dowatch</span><span className={styles.logoDot}>·</span>24
         </button>
         <nav className={styles.tabs}>
           <button
@@ -47,26 +48,24 @@ export default function App() {
       </header>
 
       <main className={styles.main}>
-        {tab === 'movies'
-          ? <Movies key={homeKey} />
-          : <TV />
-        }
-      </main>
+  <Hero />
+
+  {tab === 'movies'
+    ? <Movies key={homeKey} />
+    : <TV />
+  }
+</main>
 
       <footer className={styles.footer}>
-        <p className={styles.footerText}>
-          &copy; {new Date().getFullYear()} All rights reserved{' '}
-          <a
-            href="https://www.codespecters.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.footerLink}
-          >
-            Code Specter
-          </a>
-          {' '}| Digital Entertainment Democratized
-        </p>
-      </footer>
+  <p className={styles.footerText}>
+    dowatch24 does not store any files on our server, we only link to the
+    media which is hosted on 3rd party services.
+  </p>
+
+  <p className={styles.footerText}>
+    © dowatch24
+  </p>
+</footer>
     </div>
   )
 }
