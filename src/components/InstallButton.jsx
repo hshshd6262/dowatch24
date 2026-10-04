@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import styles from './InstallButton.module.css'
-import InstallButton from './components/InstallButton.jsx'
 
 export default function InstallButton() {
   const [installPrompt, setInstallPrompt] = useState(null)
@@ -9,23 +8,34 @@ export default function InstallButton() {
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault()
-
       setInstallPrompt(event)
       setVisible(true)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
+    // Show the card after the page loads.
+    // The actual Install button only works when Chrome provides the prompt.
+    const timer = setTimeout(() => {
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        setVisible(true)
+      }
+    }, 1500)
+
     return () => {
       window.removeEventListener(
         'beforeinstallprompt',
         handleBeforeInstallPrompt
       )
+      clearTimeout(timer)
     }
   }, [])
 
   async function installApp() {
-    if (!installPrompt) return
+    if (!installPrompt) {
+      alert('Use Chrome’s Install button in the address bar to install dowatch24.')
+      return
+    }
 
     installPrompt.prompt()
 
@@ -37,19 +47,14 @@ export default function InstallButton() {
     }
   }
 
-  function closeBanner() {
-    setVisible(false)
-  }
-
-  if (!visible || !installPrompt) return null
+  if (!visible) return null
 
   return (
     <div className={styles.installCard}>
-      <InstallButton />
       <button
         className={styles.close}
-        onClick={closeBanner}
-        aria-label="Close install prompt"
+        onClick={() => setVisible(false)}
+        aria-label="Close"
       >
         ×
       </button>
@@ -58,7 +63,7 @@ export default function InstallButton() {
 
       <div className={styles.content}>
         <strong>Install dowatch24</strong>
-        <span>Get quick access without opening your browser.</span>
+        <span>Get quick access from your desktop.</span>
       </div>
 
       <button className={styles.installButton} onClick={installApp}>
