@@ -24,6 +24,7 @@ export default function InstallButton() {
     const handleBeforeInstallPrompt = (event) => {
       event.preventDefault()
       setInstallPrompt(event)
+      setVisible(true)
     }
 
     window.addEventListener(
@@ -31,18 +32,11 @@ export default function InstallButton() {
       handleBeforeInstallPrompt
     )
 
-    // Always show our custom popup.
-    const timer = setTimeout(() => {
-      setVisible(true)
-    }, 1500)
-
     return () => {
       window.removeEventListener(
         'beforeinstallprompt',
         handleBeforeInstallPrompt
       )
-
-      clearTimeout(timer)
     }
   }, [])
 
@@ -78,7 +72,10 @@ export default function InstallButton() {
       localStorage.removeItem(DISMISS_KEY)
     }
 
-    window.addEventListener('appinstalled', handleAppInstalled)
+    window.addEventListener(
+      'appinstalled',
+      handleAppInstalled
+    )
 
     return () => {
       window.removeEventListener(
@@ -88,7 +85,7 @@ export default function InstallButton() {
     }
   }, [])
 
-  if (!visible) return null
+  if (!visible || !installPrompt) return null
 
   return (
     <div className={styles.installCard}>
@@ -99,10 +96,6 @@ export default function InstallButton() {
       >
         ×
       </button>
-
-      <div className={styles.icon}>
-        ▶
-      </div>
 
       <div className={styles.content}>
         <strong>Install dowatch24</strong>
@@ -115,7 +108,6 @@ export default function InstallButton() {
       <button
         className={styles.installButton}
         onClick={installApp}
-        disabled={!installPrompt}
       >
         Install App
       </button>
