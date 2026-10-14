@@ -25,6 +25,7 @@
 }
 
 .poster {
+  position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
   overflow: hidden;
@@ -78,4 +79,20 @@
   font-size: 11px;
   color: #444;
   margin-top: 3px;
+}
+
+.typeTag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  padding: 3px 7px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(6px);
 }

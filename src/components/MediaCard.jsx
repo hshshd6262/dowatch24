@@ -2,7 +2,7 @@ import React from 'react'
 import { posterUrl, formatRating, getYear } from '../lib/api.js'
 import styles from './MediaCard.module.css'
 
-export default function MediaCard({ item, type = 'movie', onClick, selected }) {
+export default function MediaCard({ item, type = 'movie', mixed = false, onClick, selected }) {
   const title = type === 'movie' ? item.title : item.name
   const date = type === 'movie' ? item.release_date : item.first_air_date
   const year = getYear(date)
@@ -15,6 +15,7 @@ export default function MediaCard({ item, type = 'movie', onClick, selected }) {
       onClick={() => onClick(item)}
     >
       <div className={styles.poster}>
+        {mixed && <span className={styles.typeTag}>{type === 'movie' ? 'MOVIE' : 'TV'}</span>}
         {poster
           ? <img src={poster} alt={title} loading="lazy" />
           : <div className={styles.noPoster}>{title?.slice(0, 2)}</div>

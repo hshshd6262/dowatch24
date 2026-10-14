@@ -3,6 +3,7 @@ import { api, movieEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
+import { requestSharePopup } from '../lib/share.js'
 import styles from './Movies.module.css'
 
 function persist(key, val) {
@@ -12,8 +13,8 @@ function hydrate(key) {
   try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null }
 }
 
-export default function Movies({ showSearch, playRequest }) {
-  const savedQuery = hydrate('mv_query') || ''
+export default function Movies({ showSearch, playRequest, onOpen }) {
+  const savedQuery = hydrate('search_query') || ''
   const savedPlayer = hydrate('mv_player')
 
   const [query, setQuery] = useState(savedQuery)
@@ -33,12 +34,12 @@ export default function Movies({ showSearch, playRequest }) {
   }, [showSearch])
 
   useEffect(() => {
-    if (playRequest?.item.mediaType === 'movie') select(playRequest.item, { autoplay: true })
+    if (playRequest?.item.mediaType === 'movie') select(playRequest.item, { autoplay: playRequest.autoplay })
   }, [playRequest])
 
   useEffect(() => {
     if (savedQuery) {
-      api.searchMovies(savedQuery)
+      api.searchAll(savedQuery)
         .then(d => setResults(d.results || []))
         .finally(() => setLoading(false))
     } else {
@@ -55,13 +56,15 @@ export default function Movies({ showSearch, playRequest }) {
     setLoading(true)
     setLabel('Results')
     setResults([])
-    persist('mv_query', q)
-    const d = await api.searchMovies(q)
+    persist('search_query', q)
+    const d = await api.searchAll(q)
     setResults(d.results || [])
     setLoading(false)
   }
 
   function select(item, { autoplay = false } = {}) {
+    if (item.media_type && item.media_type !== 'movie') return onOpen(item)
+    requestSharePopup()
     setDetails(item)
     persist('mv_details', item)
     if (autoplay) play(item)
@@ -111,7 +114,7 @@ export default function Movies({ showSearch, playRequest }) {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search movies…"
+            placeholder="Search movies & TV shows…"
             className={styles.input}
           />
           <button type="submit" className={styles.btn}>Search</button>

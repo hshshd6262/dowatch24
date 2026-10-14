@@ -1,12 +1,13 @@
 import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
+import SharePopup from './components/SharePopup.jsx'
 import React, { useState } from 'react'
 import Movies from './pages/Movies.jsx'
 import TV from './pages/TV.jsx'
 import styles from './App.module.css'
 
 function clearMovieSession() {
-  ['mv_query', 'mv_player', 'mv_details'].forEach(k => sessionStorage.removeItem(k))
+  ['search_query', 'mv_player', 'mv_details'].forEach(k => sessionStorage.removeItem(k))
 }
 
 export default function App() {
@@ -30,11 +31,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function playFromHero(item) {
-    const t = item.mediaType === 'movie' ? 'movies' : 'tv'
+  // Open a title in its own tab; autoplay starts movies straight away
+  function openItem(item, autoplay = false) {
+    const mediaType = item.mediaType || item.media_type
+    const t = mediaType === 'movie' ? 'movies' : 'tv'
     setTab(t)
     sessionStorage.setItem('cs_tab', t)
-    setPlayRequest({ item, nonce: Date.now() })
+    setPlayRequest({ item: { ...item, mediaType }, autoplay, nonce: Date.now() })
   }
 
   return (
@@ -74,11 +77,11 @@ export default function App() {
       </header>
 
       <main className={styles.main}>
-  <Hero onPlay={playFromHero} />
+  <Hero onPlay={item => openItem(item, true)} />
 
   {tab === 'movies'
-    ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} />
-    : <TV showSearch={searchOpen} playRequest={playRequest} />
+    ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} />
+    : <TV showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} />
   }
 </main>
 
@@ -93,6 +96,7 @@ export default function App() {
   </p>
 </footer>
 <InstallButton />
+<SharePopup />
     </div>
   )
 }

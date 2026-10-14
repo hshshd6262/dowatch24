@@ -21,11 +21,12 @@ export default function MediaGrid({ items, type, onSelect, selectedId, loading }
     <div className={styles.grid}>
       {items.map(item => (
         <MediaCard
-          key={item.id}
+          key={`${item.media_type || type}-${item.id}`}
           item={item}
-          type={type}
+          type={item.media_type || type}
+          mixed={!!item.media_type}
           onClick={onSelect}
-          selected={item.id === selectedId}
+          selected={item.id === selectedId && (item.media_type || type) === type}
         />
       ))}
     </div>

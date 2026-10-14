@@ -4,13 +4,14 @@ import MediaGrid from '../components/MediaGrid.jsx'
 import Player from '../components/Player.jsx'
 import SeasonPicker from '../components/SeasonPicker.jsx'
 import Details from '../components/Details.jsx'
+import { requestSharePopup } from '../lib/share.js'
 import styles from './TV.module.css'
 
 function persist(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)) } catch {} }
 function hydrate(key) { try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null } }
 
-export default function TV({ showSearch, playRequest }) {
-  const [query, setQuery] = useState(() => hydrate('tv_query') || '')
+export default function TV({ showSearch, playRequest, onOpen }) {
+  const [query, setQuery] = useState(() => hydrate('search_query') || '')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(() => hydrate('tv_selected'))
@@ -37,9 +38,9 @@ export default function TV({ showSearch, playRequest }) {
 
   // Load trending or restore last search
   useEffect(() => {
-    const savedQuery = hydrate('tv_query') || ''
+    const savedQuery = hydrate('search_query') || ''
     if (savedQuery) {
-      api.searchTV(savedQuery)
+      api.searchAll(savedQuery)
         .then(d => setResults(d.results || []))
         .finally(() => setLoading(false))
     } else {
@@ -66,13 +67,15 @@ export default function TV({ showSearch, playRequest }) {
     if (!q) return
     setLoading(true)
     setResults([])
-    persist('tv_query', q)
-    const d = await api.searchTV(q)
+    persist('search_query', q)
+    const d = await api.searchAll(q)
     setResults(d.results || [])
     setLoading(false)
   }
 
   function selectShow(item) {
+    if (item.media_type && item.media_type !== 'tv') return onOpen(item)
+    requestSharePopup()
     setSelected(item)
     persist('tv_selected', item)
     setShowPicker(true)
@@ -124,7 +127,7 @@ export default function TV({ showSearch, playRequest }) {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search TV series…"
+            placeholder="Search movies & TV shows…"
             className={styles.input}
           />
           <button type="submit" className={styles.btn}>Search</button>
@@ -155,7 +158,7 @@ export default function TV({ showSearch, playRequest }) {
         </div>
       )}
 
-      <p className={styles.sectionLabel}>{hydrate('tv_query') ? 'Results' : 'Trending Now'}</p>
+      <p className={styles.sectionLabel}>{hydrate('search_query') ? 'Results' : 'Trending Now'}</p>
       <MediaGrid
         items={results}
         type="tv"
