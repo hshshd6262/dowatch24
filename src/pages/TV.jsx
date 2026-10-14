@@ -3,12 +3,13 @@ import { api, tvEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
 import Player from '../components/Player.jsx'
 import SeasonPicker from '../components/SeasonPicker.jsx'
+import Details from '../components/Details.jsx'
 import styles from './TV.module.css'
 
 function persist(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)) } catch {} }
 function hydrate(key) { try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null } }
 
-export default function TV() {
+export default function TV({ showSearch, playRequest }) {
   const [query, setQuery] = useState(() => hydrate('tv_query') || '')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(true)
@@ -16,7 +17,23 @@ export default function TV() {
   const [player, setPlayer] = useState(null)
   const [showPicker, setShowPicker] = useState(false)
   const playerAnchorRef = useRef(null)
+  const detailsRef = useRef(null)
   const didRestore = useRef(false)
+  const searchRef = useRef(null)
+
+  useEffect(() => {
+    if (!showSearch) return
+    searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    searchRef.current?.querySelector('input')?.focus({ preventScroll: true })
+  }, [showSearch])
+
+  // Hero "Watch Now" on a TV show opens its season/episode picker
+  useEffect(() => {
+    if (playRequest?.item.mediaType === 'tv') {
+      didRestore.current = true
+      selectShow(playRequest.item)
+    }
+  }, [playRequest])
 
   // Load trending or restore last search
   useEffect(() => {
@@ -60,8 +77,26 @@ export default function TV() {
     persist('tv_selected', item)
     setShowPicker(true)
     setPlayer(null)
+    persist('tv_player', null)
     setTimeout(() => {
-      document.getElementById('season-picker-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
+  function closeDetails() {
+    setSelected(null)
+    setShowPicker(false)
+    setPlayer(null)
+    persist('tv_selected', null)
+    persist('tv_player', null)
+  }
+
+  function playTrailer(src) {
+    const p = { src, title: `${selected.name} — Trailer`, badge: 'Trailer', selectedId: selected.id }
+    setPlayer(p)
+    persist('tv_player', p)
+    setTimeout(() => {
+      playerAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 80)
   }
 
@@ -72,7 +107,6 @@ export default function TV() {
       title: selected.name,
       year: getYear(selected.first_air_date),
       rating: formatRating(selected.vote_average),
-      overview: selected.overview?.slice(0, 220),
       badge: `S${season} · E${episode}`,
       selectedId: selected.id,
     }
@@ -85,23 +119,37 @@ export default function TV() {
 
   return (
     <div>
-      <form className={styles.searchRow} onSubmit={search}>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search TV series…"
-          className={styles.input}
-        />
-        <button type="submit" className={styles.btn}>Search</button>
-      </form>
+      {showSearch && (
+        <form ref={searchRef} className={styles.searchRow} onSubmit={search}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search TV series…"
+            className={styles.input}
+          />
+          <button type="submit" className={styles.btn}>Search</button>
+        </form>
+      )}
+
+      {selected && (
+        <div ref={detailsRef} className={styles.anchor}>
+          <Details
+            item={selected}
+            type="tv"
+            onWatch={handlePlay}
+            onTrailer={playTrailer}
+            onClose={closeDetails}
+          />
+        </div>
+      )}
 
       {player && (
-        <div ref={playerAnchorRef}>
+        <div ref={playerAnchorRef} className={styles.anchor}>
           <Player {...player} onClose={() => { setPlayer(null); persist('tv_player', null) }} />
         </div>
       )}
 
-      {selected && showPicker && (
+      {selected && (showPicker || player) && (
         <div id="season-picker-anchor">
           <SeasonPicker show={selected} onPlay={handlePlay} />
         </div>

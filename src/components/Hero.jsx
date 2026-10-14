@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { api, posterUrl } from '../lib/api'
 import styles from './Hero.module.css'
 
-export default function Hero() {
+export default function Hero({ onPlay }) {
   const [items, setItems] = useState([])
   const [current, setCurrent] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -98,7 +98,7 @@ export default function Hero() {
           {item.overview || 'Discover what everyone is watching right now.'}
         </p>
 
-        <button className={styles.watchButton}>
+        <button className={styles.watchButton} onClick={() => onPlay?.(item)}>
           ▶ Watch Now
         </button>
       </div>

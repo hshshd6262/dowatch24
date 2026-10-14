@@ -1,6 +1,5 @@
 export const TMDB_KEY = import.meta.env.VITE_TMDB_KEY
-export const EMBED_API_KEY = import.meta.env.VITE_EMBED_API_KEY // get movie api key at https://api.codespecters.com/api
-export const EMBED_BASE = 'https://api.codespecters.com'
+export const EMBED_BASE = 'https://framextv.xyz'
 export const IMG_BASE = 'https://image.tmdb.org/t/p/w300'
 export const IMG_BASE_LG = 'https://image.tmdb.org/t/p/w780'
 
@@ -16,17 +15,17 @@ export const api = {
   trendingTV: () => tmdbFetch('/trending/tv/week'),
   searchMovies: (q) => tmdbFetch(`/search/movie?query=${encodeURIComponent(q)}`),
   searchTV: (q) => tmdbFetch(`/search/tv?query=${encodeURIComponent(q)}`),
-  movieDetails: (id) => tmdbFetch(`/movie/${id}`),
-  tvDetails: (id) => tmdbFetch(`/tv/${id}`),
+  movieDetails: (id) => tmdbFetch(`/movie/${id}?append_to_response=videos`),
+  tvDetails: (id) => tmdbFetch(`/tv/${id}?append_to_response=videos`),
   seasonDetails: (id, season) => tmdbFetch(`/tv/${id}/season/${season}`),
 }
 
 export function movieEmbedUrl(tmdbId) {
-  return `${EMBED_BASE}/embed/movie/${tmdbId}?apikey=${EMBED_API_KEY}`
+  return `${EMBED_BASE}/embed/movie/${tmdbId}`
 }
 
 export function tvEmbedUrl(tmdbId, season, episode) {
-  return `${EMBED_BASE}/embed/tv/${tmdbId}/${season}/${episode}?apikey=${EMBED_API_KEY}`
+  return `${EMBED_BASE}/embed/tv/${tmdbId}/${season}/${episode}`
 }
 
 export function posterUrl(path, large = false) {

@@ -28,7 +28,7 @@
 .btn {
   padding: 11px 28px;
   background: var(--gold);
-  color: #0a0a0a;
+  color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -54,4 +54,8 @@
   color: var(--text-dim);
   text-transform: uppercase;
   margin-bottom: 1rem;
+}
+
+.anchor {
+  scroll-margin-top: 84px;
 }

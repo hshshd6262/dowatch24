@@ -65,7 +65,7 @@ export default function SeasonPicker({ show, onPlay }) {
             className={`${styles.seasonTab} ${activeSeason === s.season_number ? styles.seasonActive : ''}`}
             onClick={() => setActiveSeason(s.season_number)}
           >
-            S{s.season_number}
+            Season {s.season_number}
           </button>
         ))}
       </div>
@@ -95,7 +95,7 @@ export default function SeasonPicker({ show, onPlay }) {
                   <div className={styles.epPlayOverlay}>▶</div>
                 </div>
                 <div className={styles.epInfo}>
-                  <span className={styles.epNum}>E{ep.episode_number}</span>
+                  <span className={styles.epNum}>Episode {ep.episode_number}</span>
                   <span className={styles.epName}>{ep.name}</span>
                   {ep.vote_average > 0 && <span className={styles.epRating}>★ {ep.vote_average.toFixed(1)}</span>}
                 </div>

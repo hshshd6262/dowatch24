@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { api, movieEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
 import Player from '../components/Player.jsx'
+import Details from '../components/Details.jsx'
 import styles from './Movies.module.css'
 
 function persist(key, val) {
@@ -11,7 +12,7 @@ function hydrate(key) {
   try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null }
 }
 
-export default function Movies() {
+export default function Movies({ showSearch, playRequest }) {
   const savedQuery = hydrate('mv_query') || ''
   const savedPlayer = hydrate('mv_player')
 
@@ -20,7 +21,20 @@ export default function Movies() {
   const [loading, setLoading] = useState(true)
   const [label, setLabel] = useState(savedQuery ? 'Results' : 'Trending Now')
   const [player, setPlayer] = useState(savedPlayer)
+  const [details, setDetails] = useState(() => hydrate('mv_details'))
+  const detailsRef = useRef(null)
   const playerAnchorRef = useRef(null)
+  const searchRef = useRef(null)
+
+  useEffect(() => {
+    if (!showSearch) return
+    searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    searchRef.current?.querySelector('input')?.focus({ preventScroll: true })
+  }, [showSearch])
+
+  useEffect(() => {
+    if (playRequest?.item.mediaType === 'movie') select(playRequest.item, { autoplay: true })
+  }, [playRequest])
 
   useEffect(() => {
     if (savedQuery) {
@@ -47,15 +61,17 @@ export default function Movies() {
     setLoading(false)
   }
 
-  function select(item) {
-    const p = {
-      src: movieEmbedUrl(item.id),
-      title: item.title,
-      year: getYear(item.release_date),
-      rating: formatRating(item.vote_average),
-      overview: item.overview?.slice(0, 220),
-      selectedId: item.id,
-    }
+  function select(item, { autoplay = false } = {}) {
+    setDetails(item)
+    persist('mv_details', item)
+    if (autoplay) play(item)
+    else if (player?.selectedId !== item.id) closePlayer()
+    setTimeout(() => {
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
+  function showPlayer(p) {
     setPlayer(p)
     persist('mv_player', p)
     setTimeout(() => {
@@ -63,25 +79,59 @@ export default function Movies() {
     }, 80)
   }
 
+  function play(item) {
+    showPlayer({
+      src: movieEmbedUrl(item.id),
+      title: item.title,
+      year: getYear(item.release_date),
+      rating: formatRating(item.vote_average),
+      selectedId: item.id,
+    })
+  }
+
+  function playTrailer(src) {
+    showPlayer({ src, title: `${details.title} — Trailer`, badge: 'Trailer', selectedId: details.id })
+  }
+
   function closePlayer() {
     setPlayer(null)
     persist('mv_player', null)
   }
 
+  function closeDetails() {
+    setDetails(null)
+    persist('mv_details', null)
+    closePlayer()
+  }
+
   return (
     <div>
-      <form className={styles.searchRow} onSubmit={search}>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search movies…"
-          className={styles.input}
-        />
-        <button type="submit" className={styles.btn}>Search</button>
-      </form>
+      {showSearch && (
+        <form ref={searchRef} className={styles.searchRow} onSubmit={search}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search movies…"
+            className={styles.input}
+          />
+          <button type="submit" className={styles.btn}>Search</button>
+        </form>
+      )}
+
+      {details && (
+        <div ref={detailsRef} className={styles.anchor}>
+          <Details
+            item={details}
+            type="movie"
+            onWatch={() => play(details)}
+            onTrailer={playTrailer}
+            onClose={closeDetails}
+          />
+        </div>
+      )}
 
       {player && (
-        <div ref={playerAnchorRef}>
+        <div ref={playerAnchorRef} className={styles.anchor}>
           <Player {...player} onClose={closePlayer} />
         </div>
       )}
@@ -92,7 +142,7 @@ export default function Movies() {
         type="movie"
         loading={loading}
         onSelect={select}
-        selectedId={player?.selectedId}
+        selectedId={details?.id}
       />
     </div>
   )

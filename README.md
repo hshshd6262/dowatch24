@@ -5,7 +5,7 @@ Minimal movie & TV streaming site built with React + Vite.
 ## Stack
 - **React 18** + **Vite**
 - **TMDB API** — movie/show metadata, posters, ratings
-- **CodeSpecters Embed API** — streaming player
+- **FrameXTV embed** — streaming player (no key needed)
 
 ## Setup
 
@@ -20,7 +20,6 @@ Edit `src/lib/api.js` to swap in your own keys:
 
 ```js
 export const TMDB_KEY = 'your_tmdb_api_key'
-export const EMBED_API_KEY = 'your_nextstream_key'
 ```
 
 Get a free TMDB key at https://www.themoviedb.org/settings/api
