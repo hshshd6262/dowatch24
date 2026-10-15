@@ -1,111 +1,129 @@
-import React, { useState, useEffect } from 'react'
-import { api, posterUrl } from '../lib/api.js'
+import React, { useState, useEffect, useRef } from 'react'
+import { api } from '../lib/api.js'
 import styles from './SeasonPicker.module.css'
 
-export default function SeasonPicker({ show, onPlay }) {
+export default function SeasonPicker({ show, onPlay, current }) {
   const [seasons, setSeasons] = useState([])
-  const [activeSeason, setActiveSeason] = useState(1)
+  const [activeSeason, setActiveSeason] = useState(current?.season || 1)
   const [episodes, setEpisodes] = useState([])
   const [epLoading, setEpLoading] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
 
-  // Build season list from show data
+  // Season list (specials / season 0 left out)
   useEffect(() => {
-    if (!show) return
-    // fetch full tv details to get seasons array
     api.tvDetails(show.id).then(details => {
-      const s = (details.seasons || []).filter(s => s.season_number > 0)
-      if (s.length === 0 && details.number_of_seasons) {
-        const arr = []
-        for (let i = 1; i <= details.number_of_seasons; i++) arr.push({ season_number: i, name: `Season ${i}`, episode_count: null })
-        setSeasons(arr)
-      } else {
-        setSeasons(s)
+      let s = (details.seasons || []).filter(s => s.season_number > 0)
+      if (s.length === 0) {
+        s = Array.from({ length: details.number_of_seasons || 1 }, (_, i) => ({ season_number: i + 1 }))
       }
-      setActiveSeason(s[0]?.season_number || 1)
-    }).catch(() => {
-      // fallback: create dummy seasons from number_of_seasons
-      const n = show.number_of_seasons || 1
-      const arr = []
-      for (let i = 1; i <= n; i++) arr.push({ season_number: i, name: `Season ${i}`, episode_count: null })
-      setSeasons(arr)
-      setActiveSeason(1)
-    })
+      setSeasons(s)
+      setActiveSeason(prev => s.some(x => x.season_number === prev) ? prev : s[0].season_number)
+    }).catch(() => setSeasons([{ season_number: 1 }]))
   }, [show.id])
 
-  // Load episodes for activeSeason
+  // Follow the playing episode's season
   useEffect(() => {
-    if (!activeSeason) return
+    if (current?.season) setActiveSeason(current.season)
+  }, [current?.season])
+
+  useEffect(() => {
     setEpLoading(true)
     setEpisodes([])
-    api.seasonDetails(show.id, activeSeason).then(data => {
-      setEpisodes(data.episodes || [])
-    }).catch(() => setEpisodes([])).finally(() => setEpLoading(false))
+    api.seasonDetails(show.id, activeSeason)
+      .then(data => setEpisodes(data.episodes || []))
+      .catch(() => setEpisodes([]))
+      .finally(() => setEpLoading(false))
   }, [show.id, activeSeason])
 
-  if (!show) return null
+  // Close the dropdown on outside click / Escape
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = e => { if (!menuRef.current?.contains(e.target)) setMenuOpen(false) }
+    const onKey = e => e.key === 'Escape' && setMenuOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
 
-  const poster = posterUrl(show.poster_path)
+  function pickSeason(n) {
+    setActiveSeason(n)
+    setMenuOpen(false)
+  }
+
+  const isPlaying = ep => current?.season === activeSeason && current?.episode === ep.episode_number
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.showHeader}>
-        {poster && <img src={poster} alt={show.name} className={styles.showPoster} />}
-        <div className={styles.showMeta}>
-          <h3 className={styles.showName}>{show.name}</h3>
-          {show.first_air_date && <span className={styles.showYear}>{show.first_air_date.slice(0, 4)}</span>}
-          {show.vote_average > 0 && <span className={styles.showRating}>★ {parseFloat(show.vote_average).toFixed(1)}</span>}
-        </div>
-      </div>
-
-      {/* Season tabs */}
-      <div className={styles.seasonTabs}>
-        {seasons.map(s => (
+      <div className={styles.toolbar}>
+        <div className={styles.dropdown} ref={menuRef}>
           <button
-            key={s.season_number}
-            className={`${styles.seasonTab} ${activeSeason === s.season_number ? styles.seasonActive : ''}`}
-            onClick={() => setActiveSeason(s.season_number)}
+            className={`${styles.dropBtn} ${menuOpen ? styles.dropBtnOpen : ''}`}
+            onClick={() => setMenuOpen(o => !o)}
+            aria-haspopup="listbox"
+            aria-expanded={menuOpen}
+            disabled={seasons.length === 0}
           >
-            Season {s.season_number}
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" /></svg>
+            Season {activeSeason}
+            <svg className={styles.chevron} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
           </button>
-        ))}
-      </div>
 
-      {/* Episodes grid */}
-      <div className={styles.episodesWrap}>
-        {epLoading ? (
-          <div className={styles.epGrid}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className={styles.epSkeleton} />
-            ))}
-          </div>
-        ) : episodes.length > 0 ? (
-          <div className={styles.epGrid}>
-            {episodes.map(ep => (
-              <button
-                key={ep.episode_number}
-                className={styles.epCard}
-                onClick={() => onPlay(activeSeason, ep.episode_number)}
-                title={ep.name}
-              >
-                <div className={styles.epThumb}>
-                  {ep.still_path
-                    ? <img src={`https://image.tmdb.org/t/p/w300${ep.still_path}`} alt={ep.name} loading="lazy" />
-                    : <div className={styles.epThumbFallback}>▶</div>
-                  }
-                  <div className={styles.epPlayOverlay}>▶</div>
-                </div>
-                <div className={styles.epInfo}>
-                  <span className={styles.epNum}>Episode {ep.episode_number}</span>
-                  <span className={styles.epName}>{ep.name}</span>
-                  {ep.vote_average > 0 && <span className={styles.epRating}>★ {ep.vote_average.toFixed(1)}</span>}
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className={styles.noEps}>No episode data available.</p>
+          {menuOpen && (
+            <ul className={styles.menu} role="listbox">
+              {seasons.map(s => (
+                <li key={s.season_number}>
+                  <button
+                    role="option"
+                    aria-selected={s.season_number === activeSeason}
+                    className={`${styles.option} ${s.season_number === activeSeason ? styles.optionActive : ''}`}
+                    onClick={() => pickSeason(s.season_number)}
+                  >
+                    <span>Season {s.season_number}</span>
+                    {s.episode_count > 0 && <span className={styles.optionCount}>{s.episode_count} eps</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {!epLoading && episodes.length > 0 && (
+          <span className={styles.count}>{episodes.length} Episodes</span>
         )}
       </div>
+
+      {epLoading ? (
+        <div className={styles.grid}>
+          {Array.from({ length: 10 }).map((_, i) => <div key={i} className={styles.skeleton} />)}
+        </div>
+      ) : episodes.length > 0 ? (
+        <div className={styles.grid}>
+          {episodes.map(ep => (
+            <button
+              key={ep.episode_number}
+              className={`${styles.ep} ${isPlaying(ep) ? styles.epActive : ''}`}
+              onClick={() => onPlay(activeSeason, ep.episode_number)}
+              title={`Episode ${ep.episode_number}: ${ep.name}`}
+            >
+              <span className={styles.play}>
+                {isPlaying(ep)
+                  ? <span className={styles.bars}><i /><i /><i /></span>
+                  : <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>
+                }
+              </span>
+              <span className={styles.epText}>
+                <b>Ep {ep.episode_number}:</b> {ep.name}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className={styles.empty}>No episode data available.</p>
+      )}
     </div>
   )
 }

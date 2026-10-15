@@ -3,6 +3,7 @@ import { api, tvEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
+import SeasonPicker from '../components/SeasonPicker.jsx'
 import { requestSharePopup } from '../lib/share.js'
 import styles from './TV.module.css'
 
@@ -105,6 +106,9 @@ export default function TV({ showSearch, playRequest, onOpen }) {
       title: selected.name,
       year: getYear(selected.first_air_date),
       rating: formatRating(selected.vote_average),
+      badge: `S${season} · E${episode}`,
+      season,
+      episode,
       selectedId: selected.id,
     }
     setPlayer(p)
@@ -146,6 +150,14 @@ export default function TV({ showSearch, playRequest, onOpen }) {
         </div>
       )}
 
+      {selected && (
+        <SeasonPicker
+          key={selected.id}
+          show={selected}
+          onPlay={handlePlay}
+          current={player?.selectedId === selected.id ? player : null}
+        />
+      )}
 
       <p className={styles.sectionLabel}>{hydrate('search_query') ? 'Results' : 'Trending Now'}</p>
       <MediaGrid
