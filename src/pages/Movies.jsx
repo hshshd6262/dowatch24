@@ -53,6 +53,10 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
+    // Close whatever is open so the results sit right under the search bar
+    closeDetails()
+    document.activeElement?.blur()
+    searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setLoading(true)
     setLabel('Results')
     setResults([])
@@ -110,7 +114,7 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
   return (
     <div>
       {showSearch && (
-        <form ref={searchRef} className={styles.searchRow} onSubmit={search}>
+        <form ref={searchRef} className={`${styles.searchRow} ${styles.anchor}`} onSubmit={search}>
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}

@@ -63,6 +63,10 @@ export default function TV({ showSearch, playRequest, onOpen }) {
     e.preventDefault()
     const q = query.trim()
     if (!q) return
+    // Close whatever is open so the results sit right under the search bar
+    closeDetails()
+    document.activeElement?.blur()
+    searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setLoading(true)
     setResults([])
     persist('search_query', q)
@@ -121,7 +125,7 @@ export default function TV({ showSearch, playRequest, onOpen }) {
   return (
     <div>
       {showSearch && (
-        <form ref={searchRef} className={styles.searchRow} onSubmit={search}>
+        <form ref={searchRef} className={`${styles.searchRow} ${styles.anchor}`} onSubmit={search}>
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -150,12 +154,13 @@ export default function TV({ showSearch, playRequest, onOpen }) {
         </div>
       )}
 
-      {selected && (
+      {/* Episode list only shows once an episode is playing (not for trailers) */}
+      {selected && player?.season && player.selectedId === selected.id && (
         <SeasonPicker
           key={selected.id}
           show={selected}
           onPlay={handlePlay}
-          current={player?.selectedId === selected.id ? player : null}
+          current={player}
         />
       )}
 
