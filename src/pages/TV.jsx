@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { api, tvEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
 import Player from '../components/Player.jsx'
-import SeasonPicker from '../components/SeasonPicker.jsx'
 import Details from '../components/Details.jsx'
 import { requestSharePopup } from '../lib/share.js'
 import styles from './TV.module.css'
@@ -16,7 +15,6 @@ export default function TV({ showSearch, playRequest, onOpen }) {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(() => hydrate('tv_selected'))
   const [player, setPlayer] = useState(null)
-  const [showPicker, setShowPicker] = useState(false)
   const playerAnchorRef = useRef(null)
   const detailsRef = useRef(null)
   const didRestore = useRef(false)
@@ -56,7 +54,6 @@ export default function TV({ showSearch, playRequest, onOpen }) {
     const savedPlayer = hydrate('tv_player')
     if (savedPlayer) {
       setPlayer(savedPlayer)
-      setShowPicker(false)
       didRestore.current = true
     }
   }, [])
@@ -78,7 +75,6 @@ export default function TV({ showSearch, playRequest, onOpen }) {
     requestSharePopup()
     setSelected(item)
     persist('tv_selected', item)
-    setShowPicker(true)
     setPlayer(null)
     persist('tv_player', null)
     setTimeout(() => {
@@ -88,7 +84,6 @@ export default function TV({ showSearch, playRequest, onOpen }) {
 
   function closeDetails() {
     setSelected(null)
-    setShowPicker(false)
     setPlayer(null)
     persist('tv_selected', null)
     persist('tv_player', null)
@@ -110,7 +105,6 @@ export default function TV({ showSearch, playRequest, onOpen }) {
       title: selected.name,
       year: getYear(selected.first_air_date),
       rating: formatRating(selected.vote_average),
-      badge: `S${season} · E${episode}`,
       selectedId: selected.id,
     }
     setPlayer(p)
@@ -152,11 +146,6 @@ export default function TV({ showSearch, playRequest, onOpen }) {
         </div>
       )}
 
-      {selected && (showPicker || player) && (
-        <div id="season-picker-anchor">
-          <SeasonPicker show={selected} onPlay={handlePlay} />
-        </div>
-      )}
 
       <p className={styles.sectionLabel}>{hydrate('search_query') ? 'Results' : 'Trending Now'}</p>
       <MediaGrid

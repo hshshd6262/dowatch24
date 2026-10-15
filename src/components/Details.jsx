@@ -92,7 +92,7 @@ export default function Details({ item, type, onWatch, onTrailer, onClose }) {
               onClick={() => (type === 'movie' ? onWatch() : onWatch(firstSeason, 1))}
             >
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>
-              {type === 'movie' ? 'Watch Movie' : `Watch S${firstSeason} · E1`}
+              {type === 'movie' ? 'Watch Movie' : 'Watch Now'}
             </button>
             <button
               className={styles.secondary}
