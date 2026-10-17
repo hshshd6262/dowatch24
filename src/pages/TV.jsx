@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { api, tvEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
+import SearchBox from '../components/SearchBox.jsx'
 import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
@@ -60,9 +61,8 @@ export default function TV({ showSearch, playRequest, onOpen }) {
     }
   }, [])
 
-  async function search(e) {
-    e.preventDefault()
-    const q = query.trim()
+  async function search(text) {
+    const q = text.trim()
     if (!q) return
     // Close whatever is open so the results sit right under the search bar
     closeDetails()
@@ -141,15 +141,14 @@ export default function TV({ showSearch, playRequest, onOpen }) {
   return (
     <div>
       {showSearch && (
-        <form ref={searchRef} className={`${styles.searchRow} ${styles.anchor}`} onSubmit={search}>
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search movies & TV shows…"
-            className={styles.input}
-          />
-          <button type="submit" className={styles.btn}>Search</button>
-        </form>
+        <SearchBox
+          ref={searchRef}
+          className={styles.anchor}
+          value={query}
+          onChange={setQuery}
+          onSearch={search}
+          onPick={onOpen}
+        />
       )}
 
       {selected && (

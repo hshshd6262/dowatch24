@@ -46,17 +46,68 @@ async function multi(q) {
   return d.results || []
 }
 
-// "avengrs" → "avengr" → "aveng" … until something matches
-async function fuzzyTitles(q) {
-  const words = q.split(/\s+/).filter(Boolean)
-  const longest = [...words].sort((a, b) => b.length - a.length)[0] || ''
-  for (let len = longest.length - 1; len >= 4; len--) {
-    const tries = words.length > 1 ? words.map(w => (w === longest ? w.slice(0, len) : w)).join(' ') : longest.slice(0, len)
-    const hits = (await multi(tries)).filter(isTitle)
-    if (hits.length) return hits
-    if (longest.length - len >= 3) break
+// Spelling similarity (0–1) using letter pairs — "brekin bad" ≈ "breaking bad"
+const norm = t => (t || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
+function pairs(t) {
+  const out = new Map()
+  for (const w of norm(t).split(' ')) {
+    for (let i = 0; i < w.length - 1; i++) {
+      const p = w.slice(i, i + 2)
+      out.set(p, (out.get(p) || 0) + 1)
+    }
   }
-  return []
+  return out
+}
+function similarity(a, b) {
+  const pa = pairs(a)
+  const pb = pairs(b)
+  let both = 0
+  let total = 0
+  for (const [k, n] of pa) { both += Math.min(n, pb.get(k) || 0); total += n }
+  for (const n of pb.values()) total += n
+  return total ? (2 * both) / total : 0
+}
+
+// Typos: search each word (and short prefixes of it), then rank everything
+// found by how closely the title is spelled to what was typed
+async function fuzzyTitles(q) {
+  const words = norm(q).split(' ').filter(w => w.length >= 3 && !['the', 'and', 'of'].includes(w))
+  const tries = new Set()
+  for (const w of words) {
+    tries.add(w)
+    if (w.length > 4) tries.add(w.slice(0, 4))
+    if (w.length > 5) tries.add(w.slice(0, w.length - 1))
+    if (w.length > 7) tries.add(w.slice(0, Math.ceil(w.length * 0.65)))
+  }
+  tries.delete(norm(q))
+
+  const lists = await Promise.all([...tries].slice(0, 8).map(t => multi(t).catch(() => [])))
+  const seen = new Set()
+  return lists.flat()
+    .filter(isTitle)
+    .filter(r => !seen.has(`${r.media_type}-${r.id}`) && seen.add(`${r.media_type}-${r.id}`))
+    .map(r => ({ r, score: similarity(q, r.title || r.name) + fame(r) / 3 }))
+    .filter(x => x.score > 0.35)
+    .sort((a, b) => b.score - a.score)
+    .map(x => x.r)
+}
+
+// How well-known a title is (0 to ~0.6): famous titles win close calls
+const fame = r => Math.log10(1 + (r.vote_count || 0)) * 0.12 + Math.log10(1 + (r.popularity || 0)) * 0.05
+
+// Merge exact + typo-tolerant hits, best spelling match first
+function rankTitles(q, direct, fuzzy) {
+  const seen = new Set()
+  const lower = norm(q)
+  return [...direct.map(r => [r, 0.15]), ...fuzzy.map(r => [r, 0])]
+    .filter(([r]) => !seen.has(`${r.media_type}-${r.id}`) && seen.add(`${r.media_type}-${r.id}`))
+    .map(([r, bonus]) => {
+      const title = norm(r.title || r.name)
+      const prefix = title.startsWith(lower) ? 0.25 : 0
+      return { r, score: similarity(q, title) + bonus + prefix + fame(r) }
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(x => x.r)
 }
 
 async function personCredits(person) {
@@ -124,7 +175,7 @@ export async function smartSearch(query) {
 
   // Typos: nothing matched by title and it's not an actor's name or a topic
   const isTopic = findTerms(q, LANGUAGES).length || findTerms(q, MOVIE_GENRES).length || findTerms(q, TV_GENRES).length
-  if (!results.length && !person && !isTopic) results = await safe(fuzzyTitles(q))
+  if (!person && !isTopic && q.length >= 5) results = rankTitles(q, results, await safe(fuzzyTitles(q)))
 
   const [credits, keywords, genres, recs] = await Promise.all([
     person ? safe(personCredits(person)) : [],
@@ -161,4 +212,23 @@ export async function smartSearch(query) {
     related,
     personName: person && credits.length ? person.name : null,
   }
+}
+
+// Instant suggestions while typing (one request, plus a typo retry when empty)
+export async function suggest(query) {
+  const q = query.trim()
+  if (q.length < 2) return { titles: [], people: [] }
+
+  // Exact search and typo-tolerant search run together for 5+ letters
+  const [raw, fuzzy] = await Promise.all([
+    multi(q),
+    q.length >= 5 ? safe(fuzzyTitles(q)) : [],
+  ])
+  const titles = rankTitles(q, raw.filter(isTitle), fuzzy)
+
+  const people = raw
+    .filter(r => r.media_type === 'person' && r.known_for_department === 'Acting' && r.popularity > 1)
+    .slice(0, 2)
+
+  return { titles: titles.slice(0, 7), people }
 }
