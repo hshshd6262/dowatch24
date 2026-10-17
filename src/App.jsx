@@ -2,6 +2,7 @@ import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
 import SharePopup from './components/SharePopup.jsx'
 import NotifyButton from './components/NotifyButton.jsx'
+import AdBanner from './components/AdBanner.jsx'
 import React, { useState } from 'react'
 import Movies from './pages/Movies.jsx'
 import TV from './pages/TV.jsx'
@@ -79,6 +80,7 @@ export default function App() {
       </header>
 
       <main className={styles.main}>
+  <AdBanner />
   <Hero onPlay={item => openItem(item, true)} />
 
   {tab === 'movies'
