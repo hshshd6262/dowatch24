@@ -1,6 +1,7 @@
 import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
 import SharePopup from './components/SharePopup.jsx'
+import NotifyButton from './components/NotifyButton.jsx'
 import React, { useState } from 'react'
 import Movies from './pages/Movies.jsx'
 import TV from './pages/TV.jsx'
@@ -73,6 +74,7 @@ export default function App() {
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
             )}
           </button>
+          <NotifyButton />
         </div>
       </header>
 
