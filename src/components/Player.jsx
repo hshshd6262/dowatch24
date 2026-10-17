@@ -22,9 +22,12 @@ export default function Player({ src, title, year, rating, overview, badge, onCl
       </div>
       <div className={styles.playerBox}>
         <iframe
+          key={src}
           src={src}
           allowFullScreen
           allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          // Lets the player run but blocks pop-ups, new tabs and redirects away from the site
+          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
           title={title}
         />
       </div>
