@@ -277,6 +277,7 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 14px;
+  padding: 0;
   list-style: none;
 }
 
@@ -366,5 +367,86 @@
 
   .card::before {
     display: none;
+  }
+}
+
+/* Blocked / iPhone help */
+.bellBadgeMuted {
+  color: #ddd;
+  background: linear-gradient(145deg, #3a3a3a, #1f1f1f);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  position: relative;
+  padding-left: 34px;
+  color: #cfcfcf;
+  font-size: 13.5px;
+  line-height: 1.5;
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+
+  color: #fff;
+  background: var(--red);
+  border-radius: 50%;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.steps b {
+  color: #fff;
+}
+
+.note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  color: #a9a9a9;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .pulse::after {
+    top: 6px;
+    right: 7px;
+  }
+
+  .card {
+    top: 64px;
   }
 }

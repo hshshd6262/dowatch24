@@ -60,7 +60,7 @@ export default function App() {
               className={`${styles.tab} ${tab === 'tv' ? styles.active : ''}`}
               onClick={() => goTab('tv')}
             >
-              TV Series
+              TV<span className={styles.tabLong}> Series</span>
             </button>
           </nav>
           <button
