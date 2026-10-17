@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { api, movieEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
+import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
 import { requestSharePopup } from '../lib/share.js'
@@ -19,8 +20,9 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
 
   const [query, setQuery] = useState(savedQuery)
   const [results, setResults] = useState([])
+  const [related, setRelated] = useState([])
+  const [searchInfo, setSearchInfo] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [label, setLabel] = useState(savedQuery ? 'Results' : 'Trending Now')
   const [player, setPlayer] = useState(savedPlayer)
   const [details, setDetails] = useState(() => hydrate('mv_details'))
   const detailsRef = useRef(null)
@@ -39,9 +41,7 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
 
   useEffect(() => {
     if (savedQuery) {
-      api.searchAll(savedQuery)
-        .then(d => setResults(d.results || []))
-        .finally(() => setLoading(false))
+      runSearch(savedQuery)
     } else {
       api.trendingMovies()
         .then(d => setResults(d.results || []))
@@ -58,12 +58,26 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
     document.activeElement?.blur()
     searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setLoading(true)
-    setLabel('Results')
     setResults([])
     persist('search_query', q)
-    const d = await api.searchAll(q)
-    setResults(d.results || [])
-    setLoading(false)
+    await runSearch(q)
+  }
+
+  async function runSearch(q) {
+    setLoading(true)
+    setResults([])
+    setRelated([])
+    try {
+      const d = await smartSearch(q)
+      setResults(d.results)
+      setRelated(d.related)
+      setSearchInfo({ query: q, person: d.personName })
+    } catch {
+      setResults([])
+      setSearchInfo({ query: q, person: null })
+    } finally {
+      setLoading(false)
+    }
   }
 
   function select(item, { autoplay = false } = {}) {
@@ -143,7 +157,13 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
         </div>
       )}
 
-      <p className={styles.sectionLabel}>{label}</p>
+      <p className={styles.sectionLabel}>
+        {searchInfo
+          ? searchInfo.person
+            ? `Movies & shows with ${searchInfo.person}`
+            : `Results for “${searchInfo.query}”`
+          : hydrate('search_query') ? 'Results' : 'Trending Now'}
+      </p>
       <MediaGrid
         items={results}
         type="movie"
@@ -151,6 +171,18 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
         onSelect={select}
         selectedId={details?.id}
       />
+
+      {!loading && related.length > 0 && (
+        <>
+          <p className={`${styles.sectionLabel} ${styles.relatedLabel}`}>Related to “{searchInfo?.query}”</p>
+          <MediaGrid
+            items={related}
+            type="movie"
+            onSelect={select}
+            selectedId={details?.id}
+          />
+        </>
+      )}
     </div>
   )
 }

@@ -15,11 +15,6 @@ export const api = {
   trendingTV: () => tmdbFetch('/trending/tv/week'),
   searchMovies: (q) => tmdbFetch(`/search/movie?query=${encodeURIComponent(q)}`),
   searchTV: (q) => tmdbFetch(`/search/tv?query=${encodeURIComponent(q)}`),
-  // Movies + TV together (drops people results)
-  searchAll: (q) => tmdbFetch(`/search/multi?query=${encodeURIComponent(q)}`).then(d => ({
-    ...d,
-    results: (d.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv'),
-  })),
   movieDetails: (id) => tmdbFetch(`/movie/${id}?append_to_response=videos`),
   tvDetails: (id) => tmdbFetch(`/tv/${id}?append_to_response=videos`),
   seasonDetails: (id, season) => tmdbFetch(`/tv/${id}/season/${season}`),

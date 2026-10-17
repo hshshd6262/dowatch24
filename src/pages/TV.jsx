@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { api, tvEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
+import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
 import SeasonPicker from '../components/SeasonPicker.jsx'
@@ -13,6 +14,8 @@ function hydrate(key) { try { const v = sessionStorage.getItem(key); return v ? 
 export default function TV({ showSearch, playRequest, onOpen }) {
   const [query, setQuery] = useState(() => hydrate('search_query') || '')
   const [results, setResults] = useState([])
+  const [related, setRelated] = useState([])
+  const [searchInfo, setSearchInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(() => hydrate('tv_selected'))
   const [player, setPlayer] = useState(null)
@@ -39,9 +42,7 @@ export default function TV({ showSearch, playRequest, onOpen }) {
   useEffect(() => {
     const savedQuery = hydrate('search_query') || ''
     if (savedQuery) {
-      api.searchAll(savedQuery)
-        .then(d => setResults(d.results || []))
-        .finally(() => setLoading(false))
+      runSearch(savedQuery)
     } else {
       api.trendingTV()
         .then(d => setResults(d.results || []))
@@ -70,9 +71,24 @@ export default function TV({ showSearch, playRequest, onOpen }) {
     setLoading(true)
     setResults([])
     persist('search_query', q)
-    const d = await api.searchAll(q)
-    setResults(d.results || [])
-    setLoading(false)
+    await runSearch(q)
+  }
+
+  async function runSearch(q) {
+    setLoading(true)
+    setResults([])
+    setRelated([])
+    try {
+      const d = await smartSearch(q)
+      setResults(d.results)
+      setRelated(d.related)
+      setSearchInfo({ query: q, person: d.personName })
+    } catch {
+      setResults([])
+      setSearchInfo({ query: q, person: null })
+    } finally {
+      setLoading(false)
+    }
   }
 
   function selectShow(item) {
@@ -164,7 +180,13 @@ export default function TV({ showSearch, playRequest, onOpen }) {
         />
       )}
 
-      <p className={styles.sectionLabel}>{hydrate('search_query') ? 'Results' : 'Trending Now'}</p>
+      <p className={styles.sectionLabel}>
+        {searchInfo
+          ? searchInfo.person
+            ? `Movies & shows with ${searchInfo.person}`
+            : `Results for “${searchInfo.query}”`
+          : hydrate('search_query') ? 'Results' : 'Trending Now'}
+      </p>
       <MediaGrid
         items={results}
         type="tv"
@@ -172,6 +194,18 @@ export default function TV({ showSearch, playRequest, onOpen }) {
         onSelect={selectShow}
         selectedId={selected?.id}
       />
+
+      {!loading && related.length > 0 && (
+        <>
+          <p className={`${styles.sectionLabel} ${styles.relatedLabel}`}>Related to “{searchInfo?.query}”</p>
+          <MediaGrid
+            items={related}
+            type="tv"
+            onSelect={selectShow}
+            selectedId={selected?.id}
+          />
+        </>
+      )}
     </div>
   )
 }
