@@ -25,9 +25,11 @@ export default function Player({ src, title, year, rating, overview, badge, onCl
           key={src}
           src={src}
           allowFullScreen
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          // "*" so fullscreen still works when the player redirects to a new domain
+          // (framextv.xyz → framextv.cc); plain "fullscreen" only covers the original one
+          allow="autoplay *; encrypted-media *; fullscreen *; picture-in-picture *"
           // Lets the player run but blocks pop-ups, new tabs and redirects away from the site
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock allow-pointer-lock"
           title={title}
         />
       </div>
