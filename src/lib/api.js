@@ -1,5 +1,5 @@
 export const TMDB_KEY = import.meta.env.VITE_TMDB_KEY
-export const EMBED_BASE = 'https://primesrc.me'
+export const EMBED_BASE = 'https://framextv.xyz'
 export const IMG_BASE = 'https://image.tmdb.org/t/p/w300'
 export const IMG_BASE_LG = 'https://image.tmdb.org/t/p/w780'
 
@@ -21,11 +21,11 @@ export const api = {
 }
 
 export function movieEmbedUrl(tmdbId) {
-  return `${EMBED_BASE}/embed/movie?tmdb=${tmdbId}`
+  return `${EMBED_BASE}/embed/movie/${tmdbId}`
 }
 
 export function tvEmbedUrl(tmdbId, season, episode) {
-  return `${EMBED_BASE}/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`
+  return `${EMBED_BASE}/embed/tv/${tmdbId}/${season}/${episode}`
 }
 
 export function posterUrl(path, large = false) {
