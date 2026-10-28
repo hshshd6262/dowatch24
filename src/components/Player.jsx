@@ -25,11 +25,9 @@ export default function Player({ src, title, year, rating, overview, badge, onCl
           key={src}
           src={src}
           allowFullScreen
-          // "*" so fullscreen still works when the player redirects to a new domain
-          // (framextv.xyz → framextv.cc); plain "fullscreen" only covers the original one
+          // "*" so fullscreen also works if the player redirects to another domain
           allow="autoplay *; encrypted-media *; fullscreen *; picture-in-picture *"
-          // Lets the player run but blocks pop-ups, new tabs and redirects away from the site
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock allow-pointer-lock"
+          // No sandbox: PrimeSrc's video hosts (Filemoon, Voe, Dood) can fail inside one
           title={title}
         />
       </div>
