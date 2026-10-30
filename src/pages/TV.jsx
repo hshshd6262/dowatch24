@@ -123,6 +123,7 @@ export default function TV({ showSearch, playRequest, onOpen }) {
     if (!selected) return
     const p = {
       src: tvEmbedUrl(selected.id, season, episode),
+      embed: { type: 'tv', id: selected.id, season, episode },
       title: selected.name,
       year: getYear(selected.first_air_date),
       rating: formatRating(selected.vote_average),

@@ -28,6 +28,30 @@ export function tvEmbedUrl(tmdbId, season, episode) {
   return `${EMBED_BASE}/embed/tv/${tmdbId}/${season}/${episode}`
 }
 
+// Video servers viewers can switch between under the player
+export const SERVERS = [
+  {
+    id: 'server1',
+    name: 'Server 1',
+    movie: id => movieEmbedUrl(id),
+    tv: (id, s, e) => tvEmbedUrl(id, s, e),
+  },
+  {
+    id: 'server2',
+    name: 'Server 2',
+    movie: id => `https://cinesrc.st/embed/movie/${id}?color=%23e50914`,
+    tv: (id, s, e) => `https://cinesrc.st/embed/tv/${id}?s=${s}&e=${e}&color=%23e50914`,
+  },
+]
+
+// embed = { type: 'movie' | 'tv', id, season, episode }
+export function embedUrl(embed, serverId) {
+  const server = SERVERS.find(s => s.id === serverId) || SERVERS[0]
+  return embed.type === 'movie'
+    ? server.movie(embed.id)
+    : server.tv(embed.id, embed.season, embed.episode)
+}
+
 export function posterUrl(path, large = false) {
   if (!path) return null
   return (large ? IMG_BASE_LG : IMG_BASE) + path

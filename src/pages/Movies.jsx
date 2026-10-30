@@ -103,6 +103,7 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
   function play(item) {
     showPlayer({
       src: movieEmbedUrl(item.id),
+      embed: { type: 'movie', id: item.id },
       title: item.title,
       year: getYear(item.release_date),
       rating: formatRating(item.vote_average),

@@ -100,3 +100,107 @@
     height: 220px;
   }
 }
+
+/* Server switcher */
+.servers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.serverRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.serverLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+  color: #9a9a9a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.serverBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+.serverBtn:hover {
+  color: #fff;
+  border-color: rgba(229, 9, 20, 0.6);
+  transform: translateY(-1px);
+}
+
+.serverActive,
+.serverActive:hover {
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow: 0 6px 18px rgba(229, 9, 20, 0.3);
+  transform: none;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  animation: livePulse 1.8s infinite;
+}
+
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6); }
+  70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.serverNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1 1 260px;
+  max-width: 460px;
+  color: #a9a9a9;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.serverNote b {
+  color: #fff;
+}
+
+@media (max-width: 520px) {
+  .servers {
+    padding: 12px;
+  }
+
+  .serverNote {
+    max-width: none;
+  }
+}
