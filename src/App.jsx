@@ -16,6 +16,7 @@ export default function App() {
   const [homeKey, setHomeKey] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
   const [playRequest, setPlayRequest] = useState(null)
+  const [titleOpen, setTitleOpen] = useState(false)
 
   function goTab(t) {
     setTab(t)
@@ -79,11 +80,11 @@ export default function App() {
 
       <main className={styles.main}>
   <AdBanner />
-  <Hero onPlay={item => openItem(item, true)} />
+  {!titleOpen && <Hero onPlay={item => openItem(item, true)} />}
 
   {tab === 'movies'
-    ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} />
-    : <TV showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} />
+    ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={setTitleOpen} />
+    : <TV showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={setTitleOpen} />
   }
 </main>
 

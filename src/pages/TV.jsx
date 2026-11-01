@@ -5,6 +5,7 @@ import SearchBox from '../components/SearchBox.jsx'
 import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
+import YouMayAlsoLike from '../components/YouMayAlsoLike.jsx'
 import SeasonPicker from '../components/SeasonPicker.jsx'
 import { requestSharePopup } from '../lib/share.js'
 import styles from './TV.module.css'
@@ -12,7 +13,7 @@ import styles from './TV.module.css'
 function persist(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)) } catch {} }
 function hydrate(key) { try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null } }
 
-export default function TV({ showSearch, playRequest, onOpen }) {
+export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
   const [query, setQuery] = useState(() => hydrate('search_query') || '')
   const [results, setResults] = useState([])
   const [related, setRelated] = useState([])
@@ -24,6 +25,9 @@ export default function TV({ showSearch, playRequest, onOpen }) {
   const detailsRef = useRef(null)
   const didRestore = useRef(false)
   const searchRef = useRef(null)
+
+  // The hero only shows while browsing, not with a title open
+  useEffect(() => { onTitleOpen(Boolean(selected)) }, [selected])
 
   useEffect(() => {
     if (!showSearch) return
@@ -180,20 +184,27 @@ export default function TV({ showSearch, playRequest, onOpen }) {
         />
       )}
 
-      <p className={styles.sectionLabel}>
-        {searchInfo
-          ? searchInfo.person
-            ? `Movies & shows with ${searchInfo.person}`
-            : `Results for “${searchInfo.query}”`
-          : hydrate('search_query') ? 'Results' : 'Trending Now'}
-      </p>
-      <MediaGrid
-        items={results}
-        type="tv"
-        loading={loading}
-        onSelect={selectShow}
-        selectedId={selected?.id}
-      />
+      {selected && <YouMayAlsoLike item={selected} type="tv" onSelect={selectShow} />}
+
+      {/* Trending gives way to "You may also like"; search results stay */}
+      {(!selected || searchInfo) && (
+        <>
+          <p className={styles.sectionLabel}>
+            {searchInfo
+              ? searchInfo.person
+                ? `Movies & shows with ${searchInfo.person}`
+                : `Results for “${searchInfo.query}”`
+              : hydrate('search_query') ? 'Results' : 'Trending Now'}
+          </p>
+          <MediaGrid
+            items={results}
+            type="tv"
+            loading={loading}
+            onSelect={selectShow}
+            selectedId={selected?.id}
+          />
+        </>
+      )}
 
       {!loading && related.length > 0 && (
         <>

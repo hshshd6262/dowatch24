@@ -161,6 +161,53 @@ async function recommendations(item) {
 
 const safe = p => p.catch(() => [])
 
+// Movie and TV genres use different ids, and TV has no horror / thriller / romance
+// genre at all, so those go through TMDB keywords instead
+const MOVIE_TO_TV = {
+  28: 'with_genres=10759', 12: 'with_genres=10759', 16: 'with_genres=16', 35: 'with_genres=35',
+  80: 'with_genres=80', 99: 'with_genres=99', 18: 'with_genres=18', 10751: 'with_genres=10751',
+  14: 'with_genres=10765', 878: 'with_genres=10765', 36: 'with_genres=10768', 10752: 'with_genres=10768',
+  9648: 'with_genres=9648', 37: 'with_genres=37',
+  27: 'with_keywords=315058', 53: 'with_keywords=316362', 10749: 'with_keywords=9840',
+}
+const TV_TO_MOVIE = {
+  10759: 'with_genres=28', 16: 'with_genres=16', 35: 'with_genres=35', 80: 'with_genres=80',
+  99: 'with_genres=99', 18: 'with_genres=18', 10751: 'with_genres=10751', 10762: 'with_genres=10751',
+  10765: 'with_genres=878', 10768: 'with_genres=10752', 9648: 'with_genres=9648', 37: 'with_genres=37',
+}
+
+// "You may also like": titles sharing the open title's genres, mostly the same
+// type with a few of the other type mixed in
+export async function similarTitles(item, type, limit = 18) {
+  const genres = item.genre_ids || (item.genres || []).map(g => g.id)
+  const otherType = type === 'movie' ? 'tv' : 'movie'
+  const crossMap = type === 'movie' ? MOVIE_TO_TV : TV_TO_MOVIE
+  const crossParam = genres.map(g => crossMap[g]).find(Boolean)
+
+  const [recs, same, other] = await Promise.all([
+    safe(recommendations({ ...item, media_type: type })),
+    genres.length ? safe(discover(type, `with_genres=${genres[0]}`)) : [],
+    crossParam ? safe(discover(otherType, crossParam)) : [],
+  ])
+
+  const shared = r => (r.genre_ids || []).filter(g => genres.includes(g)).length
+  const seen = new Set([`${type}-${item.id}`])
+  const fresh = r => isTitle(r) && !seen.has(`${r.media_type}-${r.id}`) && seen.add(`${r.media_type}-${r.id}`)
+
+  const sameList = [...recs.filter(r => r.media_type === type && (!genres.length || shared(r) > 0)), ...same]
+    .filter(fresh)
+    .sort((a, b) => shared(b) - shared(a))
+  const otherList = other.filter(fresh)
+
+  // Two of the same type, then one of the other
+  const mixed = []
+  while (mixed.length < limit && (sameList.length || otherList.length)) {
+    for (let i = 0; i < 2 && sameList.length; i++) mixed.push(sameList.shift())
+    if (otherList.length) mixed.push(otherList.shift())
+  }
+  return mixed.slice(0, limit)
+}
+
 export async function smartSearch(query) {
   const q = query.trim()
   const raw = await multi(q)

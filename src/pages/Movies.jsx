@@ -5,6 +5,7 @@ import SearchBox from '../components/SearchBox.jsx'
 import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
+import YouMayAlsoLike from '../components/YouMayAlsoLike.jsx'
 import { requestSharePopup } from '../lib/share.js'
 import styles from './Movies.module.css'
 
@@ -15,7 +16,7 @@ function hydrate(key) {
   try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null }
 }
 
-export default function Movies({ showSearch, playRequest, onOpen }) {
+export default function Movies({ showSearch, playRequest, onOpen, onTitleOpen }) {
   const savedQuery = hydrate('search_query') || ''
   const savedPlayer = hydrate('mv_player')
 
@@ -29,6 +30,9 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
   const detailsRef = useRef(null)
   const playerAnchorRef = useRef(null)
   const searchRef = useRef(null)
+
+  // The hero only shows while browsing, not with a title open
+  useEffect(() => { onTitleOpen(Boolean(details)) }, [details])
 
   useEffect(() => {
     if (!showSearch) return
@@ -157,20 +161,27 @@ export default function Movies({ showSearch, playRequest, onOpen }) {
         </div>
       )}
 
-      <p className={styles.sectionLabel}>
-        {searchInfo
-          ? searchInfo.person
-            ? `Movies & shows with ${searchInfo.person}`
-            : `Results for “${searchInfo.query}”`
-          : hydrate('search_query') ? 'Results' : 'Trending Now'}
-      </p>
-      <MediaGrid
-        items={results}
-        type="movie"
-        loading={loading}
-        onSelect={select}
-        selectedId={details?.id}
-      />
+      {details && <YouMayAlsoLike item={details} type="movie" onSelect={select} />}
+
+      {/* Trending gives way to "You may also like"; search results stay */}
+      {(!details || searchInfo) && (
+        <>
+          <p className={styles.sectionLabel}>
+            {searchInfo
+              ? searchInfo.person
+                ? `Movies & shows with ${searchInfo.person}`
+                : `Results for “${searchInfo.query}”`
+              : hydrate('search_query') ? 'Results' : 'Trending Now'}
+          </p>
+          <MediaGrid
+            items={results}
+            type="movie"
+            loading={loading}
+            onSelect={select}
+            selectedId={details?.id}
+          />
+        </>
+      )}
 
       {!loading && related.length > 0 && (
         <>
