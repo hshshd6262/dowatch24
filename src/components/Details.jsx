@@ -42,7 +42,6 @@ export default function Details({ item, type, onWatch, onTrailer, onClose }) {
       ? `${data.number_of_seasons} Season${data.number_of_seasons > 1 ? 's' : ''}`
       : null
 
-  const firstSeason = (data.seasons || []).find(s => s.season_number > 0)?.season_number || 1
 
   return (
     <section className={styles.wrap}>
@@ -89,7 +88,7 @@ export default function Details({ item, type, onWatch, onTrailer, onClose }) {
           <div className={styles.actions}>
             <button
               className={styles.primary}
-              onClick={() => (type === 'movie' ? onWatch() : onWatch(firstSeason, 1))}
+              onClick={() => onWatch()}
             >
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>
               {type === 'movie' ? 'Watch Movie' : 'Watch Now'}

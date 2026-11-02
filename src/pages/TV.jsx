@@ -6,6 +6,7 @@ import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
 import YouMayAlsoLike from '../components/YouMayAlsoLike.jsx'
+import ShareBar from '../components/ShareBar.jsx'
 import SeasonPicker from '../components/SeasonPicker.jsx'
 import { requestSharePopup } from '../lib/share.js'
 import styles from './TV.module.css'
@@ -23,6 +24,8 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
   const [player, setPlayer] = useState(null)
   const playerAnchorRef = useRef(null)
   const detailsRef = useRef(null)
+  const pickerRef = useRef(null)
+  const [showPicker, setShowPicker] = useState(false)
   const didRestore = useRef(false)
   const searchRef = useRef(null)
 
@@ -35,11 +38,12 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
     searchRef.current?.querySelector('input')?.focus({ preventScroll: true })
   }, [showSearch])
 
-  // Hero "Watch Now" on a TV show opens its season/episode picker
+  // Hero "Watch Now" on a TV show opens its details and season/episode selection
   useEffect(() => {
     if (playRequest?.item.mediaType === 'tv') {
       didRestore.current = true
       selectShow(playRequest.item)
+      if (playRequest.autoplay) showEpisodes()
     }
   }, [playRequest])
 
@@ -100,6 +104,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
     requestSharePopup()
     setSelected(item)
     persist('tv_selected', item)
+    setShowPicker(false)
     setPlayer(null)
     persist('tv_player', null)
     setTimeout(() => {
@@ -107,8 +112,17 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
     }, 80)
   }
 
+  // Watch Now: show the season/episode selection; the video starts when one is picked
+  function showEpisodes() {
+    setShowPicker(true)
+    setTimeout(() => {
+      pickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
   function closeDetails() {
     setSelected(null)
+    setShowPicker(false)
     setPlayer(null)
     persist('tv_selected', null)
     persist('tv_player', null)
@@ -125,6 +139,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
 
   function handlePlay(season, episode) {
     if (!selected) return
+    setShowPicker(true)
     const p = {
       src: tvEmbedUrl(selected.id, season, episode),
       embed: { type: 'tv', id: selected.id, season, episode },
@@ -161,7 +176,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
           <Details
             item={selected}
             type="tv"
-            onWatch={handlePlay}
+            onWatch={showEpisodes}
             onTrailer={playTrailer}
             onClose={closeDetails}
           />
@@ -174,14 +189,22 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
         </div>
       )}
 
-      {/* Episode list only shows once an episode is playing (not for trailers) */}
-      {selected && player?.season && player.selectedId === selected.id && (
-        <SeasonPicker
-          key={selected.id}
-          show={selected}
-          onPlay={handlePlay}
-          current={player}
-        />
+      {/* Episode selection appears after Watch Now, or when an episode was restored */}
+      {selected && (showPicker || player?.season) && (
+        <div ref={pickerRef} className={styles.anchor}>
+          {/* The player has its own share bar once an episode is playing */}
+          {!player?.embed && (
+            <div className={styles.shareGap}>
+              <ShareBar title={selected.name} />
+            </div>
+          )}
+          <SeasonPicker
+            key={selected.id}
+            show={selected}
+            onPlay={handlePlay}
+            current={player}
+          />
+        </div>
       )}
 
       {selected && <YouMayAlsoLike item={selected} type="tv" onSelect={selectShow} />}
