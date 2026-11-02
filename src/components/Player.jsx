@@ -56,7 +56,7 @@ export default function Player({ src, embed, title, year, rating, overview, badg
         />
       </div>
 
-      {embed && <ShareBar title={title} />}
+      {embed && <ShareBar title={title} shareKey={`${embed.type}-${embed.id}`} />}
 
       {embed && (
         <div className={styles.servers}>

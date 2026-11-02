@@ -195,7 +195,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
           {/* The player has its own share bar once an episode is playing */}
           {!player?.embed && (
             <div className={styles.shareGap}>
-              <ShareBar title={selected.name} />
+              <ShareBar title={selected.name} shareKey={`tv-${selected.id}`} />
             </div>
           )}
           <SeasonPicker

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { trackEvent } from '../lib/analytics.js'
 import styles from './InstallButton.module.css'
 
 const DISMISS_KEY = 'dowatch24_install_dismissed'
@@ -37,6 +38,7 @@ export default function InstallButton() {
 
   useEffect(() => {
     const handleAppInstalled = () => {
+      trackEvent('pwa_installed')
       setVisible(false)
       setInstallPrompt(null)
       localStorage.removeItem(DISMISS_KEY)
@@ -49,6 +51,7 @@ export default function InstallButton() {
   async function installApp() {
     if (!installPrompt) return
 
+    trackEvent('pwa_install_click')
     installPrompt.prompt()
     await installPrompt.userChoice
 

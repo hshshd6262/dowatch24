@@ -3,7 +3,7 @@
   "short_name": "dowatch24",
   "id": "/",
   "description": "Watch movies and TV series online.",
-  "start_url": "/",
+  "start_url": "/?utm_source=pwa&utm_medium=app&utm_campaign=home_screen",
   "display": "standalone",
   "background_color": "#050505",
   "theme_color": "#e50914",

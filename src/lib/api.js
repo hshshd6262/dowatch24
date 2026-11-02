@@ -31,16 +31,16 @@ export function tvEmbedUrl(tmdbId, season, episode) {
 // Video servers viewers can switch between under the player
 export const SERVERS = [
   {
-    id: 'server1',
+    id: 'cinesrc',
     name: 'Server 1',
-    movie: id => movieEmbedUrl(id),
-    tv: (id, s, e) => tvEmbedUrl(id, s, e),
-  },
-  {
-    id: 'server2',
-    name: 'Server 2',
     movie: id => `https://cinesrc.st/embed/movie/${id}?color=%23e50914`,
     tv: (id, s, e) => `https://cinesrc.st/embed/tv/${id}?s=${s}&e=${e}&color=%23e50914`,
+  },
+  {
+    id: 'framextv',
+    name: 'Server 2',
+    movie: id => movieEmbedUrl(id),
+    tv: (id, s, e) => tvEmbedUrl(id, s, e),
   },
 ]
 

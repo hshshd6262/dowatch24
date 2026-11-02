@@ -8,6 +8,10 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
+  gtag('set', 'user_properties', {
+    app_mode: (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) ? 'pwa' : 'browser'
+  });
+
   gtag('config', 'G-M0H2403NES');
 </script>
   <link rel="icon" type="image/png" href="/favicon.png" />
