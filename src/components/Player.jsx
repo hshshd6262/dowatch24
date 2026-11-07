@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { SERVERS, embedUrl } from '../lib/api.js'
 import ShareBar from './ShareBar.jsx'
+import { titlePath } from '../lib/links.js'
 import styles from './Player.module.css'
 
 // The viewer's last chosen server is remembered between visits
@@ -56,7 +57,13 @@ export default function Player({ src, embed, title, year, rating, overview, badg
         />
       </div>
 
-      {embed && <ShareBar title={title} shareKey={`${embed.type}-${embed.id}`} />}
+      {embed && (
+        <ShareBar
+          title={embed.type === 'tv' ? `${title} S${embed.season} E${embed.episode}` : title}
+          shareKey={`${embed.type}-${embed.id}`}
+          sharePath={titlePath(embed.type, embed.id, embed.type === 'tv' ? embed : null)}
+        />
+      )}
 
       {embed && (
         <div className={styles.servers}>

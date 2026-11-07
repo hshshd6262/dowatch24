@@ -4,15 +4,13 @@ import SharePopup from './components/SharePopup.jsx'
 import AdBanner from './components/AdBanner.jsx'
 import React, { useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
+import { TITLE_PATH, titlePath } from './lib/links.js'
 import Movies from './pages/Movies.jsx'
 import TV from './pages/TV.jsx'
 import styles from './App.module.css'
 
-// Each title has its own address: /movie/123 or /tv/456
-const TITLE_PATH = /^\/(movie|tv)\/(\d+)/
-
-function setTitleUrl(type, item) {
-  const path = item ? `/${type}/${item.id}` : '/'
+function setTitleUrl(type, item, episode) {
+  const path = item ? titlePath(type, item.id, episode) : '/'
   if (window.location.pathname !== path) {
     window.history.replaceState(null, '', path + window.location.search)
   }
@@ -50,33 +48,38 @@ export default function App() {
   useEffect(() => {
     const match = sharedLink.current
     if (!match) return
-    const [, type, id] = match
+    const [, type, id, season, episode] = match
     const load = type === 'movie' ? api.movieDetails : api.tvDetails
     load(id)
-      .then(item => openItem({ ...item, media_type: type }))
+      .then(item => openItem(
+        { ...item, media_type: type },
+        false,
+        type === 'tv' && season ? { season: Number(season), episode: Number(episode) } : null,
+      ))
       .catch(() => {
         sharedLink.current = null
         window.history.replaceState(null, '', '/' + window.location.search)
       })
   }, [])
 
-  function handleTitleOpen(type, item) {
+  function handleTitleOpen(type, item, episode) {
     setTitleOpen(Boolean(item))
     // Keep the shared address until that title has opened
     if (sharedLink.current) {
       if (!item || `${type}` !== sharedLink.current[1] || String(item.id) !== sharedLink.current[2]) return
       sharedLink.current = null
     }
-    setTitleUrl(type, item)
+    setTitleUrl(type, item, episode)
   }
 
   // Open a title in its own tab; autoplay starts movies straight away
-  function openItem(item, autoplay = false) {
+  // episode (TV only) plays that season/episode straight away
+  function openItem(item, autoplay = false, episode = null) {
     const mediaType = item.mediaType || item.media_type
     const t = mediaType === 'movie' ? 'movies' : 'tv'
     setTab(t)
     sessionStorage.setItem('cs_tab', t)
-    setPlayRequest({ item: { ...item, mediaType }, autoplay, nonce: Date.now() })
+    setPlayRequest({ item: { ...item, mediaType }, autoplay, episode, nonce: Date.now() })
   }
 
   return (
@@ -121,7 +124,7 @@ export default function App() {
 
   {tab === 'movies'
     ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={item => handleTitleOpen('movie', item)} />
-    : <TV showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={item => handleTitleOpen('tv', item)} />
+    : <TV showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={(item, episode) => handleTitleOpen('tv', item, episode)} />
   }
 </main>
 

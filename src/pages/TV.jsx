@@ -7,6 +7,7 @@ import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
 import YouMayAlsoLike from '../components/YouMayAlsoLike.jsx'
 import ShareBar from '../components/ShareBar.jsx'
+import { titlePath } from '../lib/links.js'
 import SeasonPicker from '../components/SeasonPicker.jsx'
 import { requestSharePopup } from '../lib/share.js'
 import styles from './TV.module.css'
@@ -30,7 +31,12 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
   const searchRef = useRef(null)
 
   // The hero only shows while browsing, not with a title open
-  useEffect(() => { onTitleOpen(selected) }, [selected])
+  // The address includes the episode while one is playing
+  const playingSeason = player?.selectedId === selected?.id ? player?.season : null
+  const playingEpisode = playingSeason ? player.episode : null
+  useEffect(() => {
+    onTitleOpen(selected, playingSeason ? { season: playingSeason, episode: playingEpisode } : null)
+  }, [selected, playingSeason, playingEpisode])
 
   useEffect(() => {
     if (!showSearch) return
@@ -43,7 +49,8 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
     if (playRequest?.item.mediaType === 'tv') {
       didRestore.current = true
       selectShow(playRequest.item)
-      if (playRequest.autoplay) showEpisodes()
+      if (playRequest.episode) handlePlay(playRequest.episode.season, playRequest.episode.episode, playRequest.item)
+      else if (playRequest.autoplay) showEpisodes()
     }
   }, [playRequest])
 
@@ -137,19 +144,20 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
     }, 80)
   }
 
-  function handlePlay(season, episode) {
-    if (!selected) return
+  // show is passed when the show was opened in this same step (state isn't updated yet)
+  function handlePlay(season, episode, show = selected) {
+    if (!show) return
     setShowPicker(true)
     const p = {
-      src: tvEmbedUrl(selected.id, season, episode),
-      embed: { type: 'tv', id: selected.id, season, episode },
-      title: selected.name,
-      year: getYear(selected.first_air_date),
-      rating: formatRating(selected.vote_average),
+      src: tvEmbedUrl(show.id, season, episode),
+      embed: { type: 'tv', id: show.id, season, episode },
+      title: show.name,
+      year: getYear(show.first_air_date),
+      rating: formatRating(show.vote_average),
       badge: `S${season} · E${episode}`,
       season,
       episode,
-      selectedId: selected.id,
+      selectedId: show.id,
     }
     setPlayer(p)
     persist('tv_player', p)
@@ -195,7 +203,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
           {/* The player has its own share bar once an episode is playing */}
           {!player?.embed && (
             <div className={styles.shareGap}>
-              <ShareBar title={selected.name} shareKey={`tv-${selected.id}`} />
+              <ShareBar title={selected.name} shareKey={`tv-${selected.id}`} sharePath={titlePath('tv', selected.id)} />
             </div>
           )}
           <SeasonPicker
