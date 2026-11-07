@@ -32,7 +32,7 @@ export default function Movies({ showSearch, playRequest, onOpen, onTitleOpen })
   const searchRef = useRef(null)
 
   // The hero only shows while browsing, not with a title open
-  useEffect(() => { onTitleOpen(Boolean(details)) }, [details])
+  useEffect(() => { onTitleOpen(details) }, [details])
 
   useEffect(() => {
     if (!showSearch) return

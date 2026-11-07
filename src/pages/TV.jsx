@@ -30,7 +30,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
   const searchRef = useRef(null)
 
   // The hero only shows while browsing, not with a title open
-  useEffect(() => { onTitleOpen(Boolean(selected)) }, [selected])
+  useEffect(() => { onTitleOpen(selected) }, [selected])
 
   useEffect(() => {
     if (!showSearch) return

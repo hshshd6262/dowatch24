@@ -2,10 +2,21 @@ import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
 import SharePopup from './components/SharePopup.jsx'
 import AdBanner from './components/AdBanner.jsx'
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { api } from './lib/api.js'
 import Movies from './pages/Movies.jsx'
 import TV from './pages/TV.jsx'
 import styles from './App.module.css'
+
+// Each title has its own address: /movie/123 or /tv/456
+const TITLE_PATH = /^\/(movie|tv)\/(\d+)/
+
+function setTitleUrl(type, item) {
+  const path = item ? `/${type}/${item.id}` : '/'
+  if (window.location.pathname !== path) {
+    window.history.replaceState(null, '', path + window.location.search)
+  }
+}
 
 function clearMovieSession() {
   ['search_query', 'mv_player', 'mv_details'].forEach(k => sessionStorage.removeItem(k))
@@ -17,6 +28,8 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [playRequest, setPlayRequest] = useState(null)
   const [titleOpen, setTitleOpen] = useState(false)
+  // Read before the pages' effects run, since those update the address
+  const sharedLink = useRef(window.location.pathname.match(TITLE_PATH))
 
   function goTab(t) {
     setTab(t)
@@ -31,6 +44,30 @@ export default function App() {
     sessionStorage.setItem('cs_tab', 'movies')
     setHomeKey(k => k + 1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Opening a shared link like /movie/123 opens that title
+  useEffect(() => {
+    const match = sharedLink.current
+    if (!match) return
+    const [, type, id] = match
+    const load = type === 'movie' ? api.movieDetails : api.tvDetails
+    load(id)
+      .then(item => openItem({ ...item, media_type: type }))
+      .catch(() => {
+        sharedLink.current = null
+        window.history.replaceState(null, '', '/' + window.location.search)
+      })
+  }, [])
+
+  function handleTitleOpen(type, item) {
+    setTitleOpen(Boolean(item))
+    // Keep the shared address until that title has opened
+    if (sharedLink.current) {
+      if (!item || `${type}` !== sharedLink.current[1] || String(item.id) !== sharedLink.current[2]) return
+      sharedLink.current = null
+    }
+    setTitleUrl(type, item)
   }
 
   // Open a title in its own tab; autoplay starts movies straight away
@@ -83,8 +120,8 @@ export default function App() {
   {!titleOpen && <Hero onPlay={item => openItem(item, true)} />}
 
   {tab === 'movies'
-    ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={setTitleOpen} />
-    : <TV showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={setTitleOpen} />
+    ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={item => handleTitleOpen('movie', item)} />
+    : <TV showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={item => handleTitleOpen('tv', item)} />
   }
 </main>
 

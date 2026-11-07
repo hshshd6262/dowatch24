@@ -35,7 +35,9 @@ export default function ShareBar({ title, shareKey }) {
         releaseShare(shareKey, platform)
       })
   }
-  const url = window.location.origin
+  const url = shareKey
+    ? `${window.location.origin}/${shareKey.replace('-', '/')}`
+    : window.location.origin
   const u = encodeURIComponent(url)
   const t = encodeURIComponent(`Watch ${title} on Dowatch24`)
 
