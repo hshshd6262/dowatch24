@@ -7,6 +7,7 @@ import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
 import YouMayAlsoLike from '../components/YouMayAlsoLike.jsx'
 import ShareBar from '../components/ShareBar.jsx'
+import AdBanner from '../components/AdBanner.jsx'
 import { titlePath } from '../lib/links.js'
 import SeasonPicker from '../components/SeasonPicker.jsx'
 import { requestSharePopup } from '../lib/share.js'
@@ -203,6 +204,8 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
           {/* The player has its own share bar once an episode is playing */}
           {!player?.embed && (
             <div className={styles.shareGap}>
+              {/* Banner between the details panel and the share bar */}
+              <AdBanner className={styles.adAboveShare} />
               <ShareBar title={selected.name} shareKey={`tv-${selected.id}`} sharePath={titlePath('tv', selected.id)} />
             </div>
           )}

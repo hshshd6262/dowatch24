@@ -204,3 +204,12 @@
     max-width: none;
   }
 }
+
+/* Banner ad spots */
+.adTop {
+  margin-bottom: 1.25rem;
+}
+
+.adMiddle {
+  margin: 12px auto 0;
+}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { SERVERS, embedUrl } from '../lib/api.js'
 import ShareBar from './ShareBar.jsx'
+import AdBanner from './AdBanner.jsx'
 import { titlePath } from '../lib/links.js'
 import styles from './Player.module.css'
 
@@ -29,6 +30,9 @@ export default function Player({ src, embed, title, year, rating, overview, badg
 
   return (
     <div className={styles.wrap}>
+      {/* Banner ads above the player and between the share bar and servers (not for trailers) */}
+      {embed && <AdBanner className={styles.adTop} />}
+
       <div className={styles.meta}>
         <div className={styles.metaTop}>
           <h2 className={styles.title}>{title}</h2>
@@ -64,6 +68,8 @@ export default function Player({ src, embed, title, year, rating, overview, badg
           sharePath={titlePath(embed.type, embed.id, embed.type === 'tv' ? embed : null)}
         />
       )}
+
+      {embed && <AdBanner className={styles.adMiddle} />}
 
       {embed && (
         <div className={styles.servers}>

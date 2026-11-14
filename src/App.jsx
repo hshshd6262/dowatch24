@@ -1,5 +1,6 @@
 import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
+import AdBanner from './components/AdBanner.jsx'
 import SharePopup from './components/SharePopup.jsx'
 import React, { useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
@@ -84,8 +85,10 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <button className={styles.logo} onClick={goHome} aria-label="Go to home">
-          <span className={styles.logoAccent}>Dowatch</span><span className={styles.logoDot}>·</span>24
+        <button className={styles.logo} onClick={goHome} aria-label="Dowatch24 – go to home">
+          {/* The red D mark is the "D" of Dowatch24 */}
+          <img className={styles.logoMark} src="/logo-mark.png" alt="" width="126" height="96" />
+          <span className={styles.logoText}>owatch<span className={styles.logoAccent}>24</span></span>
         </button>
         <div className={styles.navGroup}>
           <nav className={styles.tabs}>
@@ -118,7 +121,10 @@ export default function App() {
       </header>
 
       <main className={styles.main}>
+  <AdBanner />
   {!titleOpen && <Hero onPlay={item => openItem(item, true)} />}
+  {/* Banner between the hero and Trending Now (hidden with the hero) */}
+  {!titleOpen && <AdBanner className={styles.adUnderHero} />}
 
   {tab === 'movies'
     ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={item => handleTitleOpen('movie', item)} />

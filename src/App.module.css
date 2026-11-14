@@ -41,6 +41,10 @@
 ========================= */
 
 .logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
   background: none;
   border: none;
   padding: 0;
@@ -73,10 +77,6 @@
 
   text-shadow:
     0 0 16px rgba(229, 9, 20, 0.35);
-}
-
-.logoDot {
-  color: #555;
 }
 
 /* =========================
@@ -354,3 +354,53 @@
   }
 }
 
+
+/* Logo: the red D mark stands in for the D of "Dowatch24" */
+.logo {
+  gap: 1px;
+  letter-spacing: 0;
+  font-style: normal;
+}
+
+.logoMark {
+  display: block;
+  width: auto;
+  height: 30px;
+  filter: drop-shadow(0 0 10px rgba(229, 9, 20, 0.35));
+}
+
+.logoText {
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  /* sit on the same baseline as the bottom of the D */
+  transform: translateY(2px);
+}
+
+.logoText .logoAccent {
+  margin-left: 0.18em;
+  color: #e50914;
+  text-shadow: 0 0 16px rgba(229, 9, 20, 0.35);
+}
+
+@media (max-width: 480px) {
+  .logo {
+    gap: 1px;
+    letter-spacing: 0;
+  }
+
+  .logoMark {
+    height: 24px;
+  }
+
+  .logoText {
+    font-size: 1.12rem;
+  }
+}
+
+/* Banner between the hero and the Trending Now grid */
+.adUnderHero {
+  margin: -1rem auto 2rem;
+}

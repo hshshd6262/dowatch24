@@ -1,0 +1,14 @@
+.wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0 auto 1.5rem;
+  overflow: hidden;
+}
+
+.frame {
+  flex-shrink: 0;
+  display: block;
+  border: 0;
+  transform-origin: top center;
+}
