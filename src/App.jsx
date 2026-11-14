@@ -2,6 +2,7 @@ import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
 import AdBanner from './components/AdBanner.jsx'
 import SharePopup from './components/SharePopup.jsx'
+import DiscordIcon, { DISCORD_URL } from './components/DiscordIcon.jsx'
 import React, { useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
 import { TITLE_PATH, titlePath } from './lib/links.js'
@@ -91,6 +92,16 @@ export default function App() {
           <span className={styles.logoText}>owatch<span className={styles.logoAccent}>24</span></span>
         </button>
         <div className={styles.navGroup}>
+          <a
+            className={`${styles.searchToggle} ${styles.discord}`}
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Join our Discord community"
+            title="Join our Discord community"
+          >
+            <DiscordIcon size={18} />
+          </a>
           <nav className={styles.tabs}>
             <button
               className={`${styles.tab} ${tab === 'movies' ? styles.active : ''}`}

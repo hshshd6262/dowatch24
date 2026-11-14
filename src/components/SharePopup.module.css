@@ -260,3 +260,89 @@
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
+/* =========================
+   JOIN OUR COMMUNITY (Discord)
+========================= */
+
+.glowDiscord {
+  background: radial-gradient(closest-side, rgba(88, 101, 242, 0.4), transparent);
+}
+
+.discordBadge {
+  position: relative;
+  display: grid;
+  place-items: center;
+
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 1rem;
+
+  color: #fff;
+  background: linear-gradient(145deg, #6d78ff, #4752c4);
+  border-radius: 22px;
+  box-shadow: 0 12px 30px rgba(88, 101, 242, 0.45);
+
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.perks {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 1.3rem;
+  padding: 0;
+  list-style: none;
+}
+
+.perks li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.joinBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  width: 100%;
+  padding: 13px 18px;
+
+  color: #fff;
+  background: linear-gradient(135deg, #6d78ff, #5865f2);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(88, 101, 242, 0.4);
+
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+
+  transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+}
+
+.joinBtn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(88, 101, 242, 0.5);
+}

@@ -404,3 +404,18 @@
 .adUnderHero {
   margin: -1rem auto 2rem;
 }
+
+/* Discord button in the header */
+.discord:hover {
+  color: #fff;
+  background: #5865f2;
+  border-color: #5865f2;
+  box-shadow: 0 0 18px rgba(88, 101, 242, 0.45);
+}
+
+/* Very small phones: hide the Discord icon so the header stays on one line */
+@media (max-width: 359px) {
+  .discord {
+    display: none;
+  }
+}
