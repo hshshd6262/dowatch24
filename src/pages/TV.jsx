@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { api, tvEmbedUrl, formatRating, getYear } from '../lib/api.js'
 import MediaGrid from '../components/MediaGrid.jsx'
 import SearchBox from '../components/SearchBox.jsx'
+import SearchResults from '../components/SearchResults.jsx'
 import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
@@ -188,6 +189,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
             onWatch={showEpisodes}
             onTrailer={playTrailer}
             onClose={closeDetails}
+            preview={!player}
           />
         </div>
       )}
@@ -220,32 +222,25 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
 
       {selected && <YouMayAlsoLike item={selected} type="tv" onSelect={selectShow} />}
 
-      {/* Trending gives way to "You may also like"; search results stay */}
-      {(!selected || searchInfo) && (
+      {/* Search results (top result + more like this); otherwise Trending, which gives way to "You may also like" */}
+      {searchInfo ? (
+        <SearchResults
+          query={searchInfo.query}
+          person={searchInfo.person}
+          results={results}
+          related={related}
+          loading={loading}
+          type="tv"
+          onSelect={selectShow}
+          selectedId={selected?.id}
+        />
+      ) : !selected && (
         <>
-          <p className={styles.sectionLabel}>
-            {searchInfo
-              ? searchInfo.person
-                ? `Movies & shows with ${searchInfo.person}`
-                : `Results for “${searchInfo.query}”`
-              : hydrate('search_query') ? 'Results' : 'Trending Now'}
-          </p>
+          <p className={styles.sectionLabel}>{hydrate('search_query') ? 'Results' : 'Trending Now'}</p>
           <MediaGrid
             items={results}
             type="tv"
             loading={loading}
-            onSelect={selectShow}
-            selectedId={selected?.id}
-          />
-        </>
-      )}
-
-      {!loading && related.length > 0 && (
-        <>
-          <p className={`${styles.sectionLabel} ${styles.relatedLabel}`}>Related to “{searchInfo?.query}”</p>
-          <MediaGrid
-            items={related}
-            type="tv"
             onSelect={selectShow}
             selectedId={selected?.id}
           />

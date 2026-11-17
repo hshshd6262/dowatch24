@@ -10,13 +10,22 @@ async function tmdbFetch(path) {
   return res.json()
 }
 
+// Details are fetched once and reused (cards prefetch them on hover / touch)
+const detailsCache = new Map()
+function cachedDetails(path) {
+  if (!detailsCache.has(path)) {
+    detailsCache.set(path, tmdbFetch(path).catch(err => { detailsCache.delete(path); throw err }))
+  }
+  return detailsCache.get(path)
+}
+
 export const api = {
   trendingMovies: () => tmdbFetch('/trending/movie/week'),
   trendingTV: () => tmdbFetch('/trending/tv/week'),
   searchMovies: (q) => tmdbFetch(`/search/movie?query=${encodeURIComponent(q)}`),
   searchTV: (q) => tmdbFetch(`/search/tv?query=${encodeURIComponent(q)}`),
-  movieDetails: (id) => tmdbFetch(`/movie/${id}?append_to_response=videos`),
-  tvDetails: (id) => tmdbFetch(`/tv/${id}?append_to_response=videos`),
+  movieDetails: (id) => cachedDetails(`/movie/${id}?append_to_response=videos`),
+  tvDetails: (id) => cachedDetails(`/tv/${id}?append_to_response=videos`),
   seasonDetails: (id, season) => tmdbFetch(`/tv/${id}/season/${season}`),
 }
 

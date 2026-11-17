@@ -1,5 +1,5 @@
 import React from 'react'
-import { posterUrl, formatRating, getYear } from '../lib/api.js'
+import { api, posterUrl, formatRating, getYear } from '../lib/api.js'
 import styles from './MediaCard.module.css'
 
 export default function MediaCard({ item, type = 'movie', mixed = false, onClick, selected }) {
@@ -13,6 +13,8 @@ export default function MediaCard({ item, type = 'movie', mixed = false, onClick
     <div
       className={`${styles.card} ${selected ? styles.selected : ''}`}
       onClick={() => onClick(item)}
+      // Start loading details (and the trailer) before the click lands
+      onPointerEnter={() => (type === 'movie' ? api.movieDetails : api.tvDetails)(item.id).catch(() => {})}
     >
       <div className={styles.poster}>
         {mixed && <span className={styles.typeTag}>{type === 'movie' ? 'MOVIE' : 'TV'}</span>}
