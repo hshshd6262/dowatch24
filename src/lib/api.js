@@ -51,6 +51,17 @@ export const SERVERS = [
     movie: id => movieEmbedUrl(id),
     tv: (id, s, e) => tvEmbedUrl(id, s, e),
   },
+  {
+    // Fastest, but heavy ads: viewers confirm a warning first. It fails inside the
+    // pop-up-blocking sandbox (404), so it runs without it.
+    id: 'primesrc',
+    name: 'Server 3',
+    tag: 'Fast',
+    warning: true,
+    sandbox: false,
+    movie: id => `https://primesrc.me/embed/movie?tmdb=${id}`,
+    tv: (id, s, e) => `https://primesrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+  },
 ]
 
 // embed = { type: 'movie' | 'tv', id, season, episode }

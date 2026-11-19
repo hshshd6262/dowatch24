@@ -1,31 +1,42 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { SERVERS, embedUrl } from '../lib/api.js'
 import ShareBar from './ShareBar.jsx'
 import AdBanner from './AdBanner.jsx'
+import ServerWarning from './ServerWarning.jsx'
 import { titlePath } from '../lib/links.js'
 import styles from './Player.module.css'
 
-// The viewer's last chosen server is remembered between visits
-const SERVER_KEY = 'dw_server'
-function savedServer() {
-  try {
-    const id = localStorage.getItem(SERVER_KEY)
-    return SERVERS.some(s => s.id === id) ? id : SERVERS[0].id
-  } catch {
-    return SERVERS[0].id
-  }
-}
-
 export default function Player({ src, embed, title, year, rating, overview, badge, onClose }) {
-  const [server, setServer] = useState(savedServer)
+  // Every movie / show starts on Server 1; episodes of the same show keep the chosen server
+  const titleKey = embed ? `${embed.type}-${embed.id}` : null
+  const [server, setServer] = useState(SERVERS[0].id)
+  const [agreedFor, setAgreedFor] = useState(null) // title the ad warning was accepted for
+  const [askFor, setAskFor] = useState(null) // server waiting for the ad warning
+  const current = SERVERS.find(s => s.id === server) || SERVERS[0]
+
+  useEffect(() => {
+    setServer(SERVERS[0].id)
+    setAgreedFor(null)
+    setAskFor(null)
+  }, [titleKey])
+
+  const cancelAsk = useCallback(() => setAskFor(null), [])
 
   // Movies / episodes come with `embed` and can switch servers; trailers just have `src`
   const frameSrc = embed ? embedUrl(embed, server) : src
   if (!frameSrc) return null
 
+  // The ad warning shows again for every new movie / show
   function pickServer(id) {
+    const s = SERVERS.find(x => x.id === id)
+    if (s.warning && agreedFor !== titleKey && id !== server) return setAskFor(s)
     setServer(id)
-    try { localStorage.setItem(SERVER_KEY, id) } catch {}
+  }
+
+  function agree() {
+    setAgreedFor(titleKey)
+    setServer(askFor.id)
+    setAskFor(null)
   }
 
   return (
@@ -56,7 +67,8 @@ export default function Player({ src, embed, title, year, rating, overview, badg
           // (framextv.xyz → framextv.cc); plain "fullscreen" only covers the original one
           allow="autoplay *; encrypted-media *; fullscreen *; picture-in-picture *"
           // Lets the player run but blocks pop-ups, new tabs and redirects away from the site
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock allow-pointer-lock"
+          // (servers marked sandbox: false can't play inside it)
+          sandbox={embed && current.sandbox === false ? undefined : 'allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock allow-pointer-lock'}
           title={title}
         />
       </div>
@@ -88,6 +100,7 @@ export default function Player({ src, embed, title, year, rating, overview, badg
               >
                 {server === s.id && <span className={styles.liveDot} />}
                 {s.name}
+                {s.tag && <span className={styles.serverTag}>⚡ {s.tag}</span>}
               </button>
             ))}
           </div>
@@ -97,6 +110,8 @@ export default function Player({ src, embed, title, year, rating, overview, badg
           </p>
         </div>
       )}
+
+      {askFor && <ServerWarning server={askFor} onAgree={agree} onCancel={cancelAsk} />}
     </div>
   )
 }

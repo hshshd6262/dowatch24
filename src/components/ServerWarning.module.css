@@ -1,0 +1,332 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 440px;
+  padding: 2rem 1.5rem 1.4rem;
+
+  background: linear-gradient(180deg, #17140c 0%, #0d0d0d 55%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 60px rgba(255, 184, 0, 0.08);
+
+  animation: popIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.glow {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  width: 340px;
+  height: 230px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(255, 184, 0, 0.3), transparent);
+  pointer-events: none;
+}
+
+.close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+
+  color: #aaa;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 0.9rem;
+
+  color: #1a1200;
+  background: linear-gradient(145deg, #ffd34d, #ff9d00);
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(255, 170, 0, 0.4);
+
+  animation: zap 2.4s ease-in-out infinite;
+}
+
+@keyframes zap {
+  0%, 100% { transform: scale(1) rotate(0); }
+  8% { transform: scale(1.08) rotate(-6deg); }
+  16% { transform: scale(1) rotate(0); }
+}
+
+.kicker {
+  position: relative;
+  color: #ffc44d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.title {
+  position: relative;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.text {
+  position: relative;
+  margin: 0.5rem auto 1.1rem;
+  max-width: 340px;
+  color: #a9a9a9;
+  font-size: 14px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 10px 12px;
+
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+}
+
+.list li > span {
+  flex-shrink: 0;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.list li div {
+  color: #b9b9b9;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.list li b {
+  display: block;
+  margin-bottom: 1px;
+  color: #fff;
+  font-size: 13.5px;
+}
+
+.good { border-color: rgba(68, 210, 120, 0.25) !important; }
+.warn { border-color: rgba(255, 170, 0, 0.35) !important; background: rgba(255, 170, 0, 0.06) !important; }
+.tip { border-color: rgba(255, 255, 255, 0.08) !important; }
+
+/* Agreement checkbox */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px;
+
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+
+  font-size: 13.5px;
+  line-height: 1.45;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.check:hover {
+  border-color: rgba(255, 196, 77, 0.5);
+}
+
+.checkOn {
+  background: rgba(255, 184, 0, 0.08);
+  border-color: rgba(255, 196, 77, 0.7);
+}
+
+.check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.box {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+
+  color: transparent;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 7px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+
+.checkOn .box {
+  color: #1a1200;
+  background: #ffc44d;
+  border-color: #ffc44d;
+  transform: scale(1.06);
+}
+
+.check input:focus-visible + .box {
+  outline: 2px solid #ffc44d;
+  outline-offset: 2px;
+}
+
+/* Buttons */
+.actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  margin-top: 1.1rem;
+}
+
+.go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 18px;
+
+  color: #1a1200;
+  background: linear-gradient(135deg, #ffd34d, #ff9d00);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(255, 170, 0, 0.35);
+
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.2s, opacity 0.2s, box-shadow 0.2s;
+}
+
+.go:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.go:disabled {
+  color: #777;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.cancel {
+  padding: 9px;
+  color: #8a8a8a;
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel:hover {
+  color: #ddd;
+}
+
+/* Phones: slide up from the bottom */
+@media (max-width: 520px) {
+  .overlay {
+    align-items: end;
+    padding: 0;
+  }
+
+  .card {
+    max-width: none;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 22px 22px 0 0;
+    padding-bottom: calc(1.3rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Spacing now that the intro line is gone */
+.title {
+  margin-bottom: 1.1rem;
+}
+
+/* "Prefer no ads?" box gives a little shake now and then to catch the eye */
+.wiggle {
+  animation: wiggle 3s ease-in-out 0.6s infinite;
+}
+
+@keyframes wiggle {
+  0%, 78%, 100% { transform: translateX(0) rotate(0); }
+  81% { transform: translateX(-4px) rotate(-0.8deg); }
+  84% { transform: translateX(4px) rotate(0.8deg); }
+  87% { transform: translateX(-3px) rotate(-0.5deg); }
+  90% { transform: translateX(3px) rotate(0.5deg); }
+  93% { transform: translateX(-1px) rotate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wiggle {
+    animation: none;
+  }
+}
+
+/* One-line point with no sub-heading */
+.list li .plain {
+  align-self: center;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+}
