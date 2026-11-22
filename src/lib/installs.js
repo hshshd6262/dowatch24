@@ -1,4 +1,4 @@
-// Counts installs: the first time the installed app is opened on a device, tell the server once.
+// Counts installs (first open on a device, once) and opens (every time the app is opened).
 // Android app / iPhone Home Screen app / app installed on a computer. Stats: /stats?key=ADMIN_KEY
 import { appVersionCode, deviceId, platform } from './push.js'
 import { trackEvent } from './analytics.js'
@@ -23,5 +23,27 @@ export function reportInstall() {
       localStorage.setItem(DONE_KEY, '1')
       if ((await res.json().catch(() => ({}))).counted) trackEvent('app_install', { install_platform: kind })
     })
+    .catch(() => {})
+}
+
+// Every app launch (not reloads within the same launch). Stats: opens + people per day, by country.
+export function reportOpen() {
+  const kind = KIND[platform()]
+  if (!kind) return
+  try {
+    if (sessionStorage.getItem('dw_open_sent')) return
+    sessionStorage.setItem('dw_open_sent', '1')
+  } catch {}
+  const id = deviceId()
+  if (!id) return
+  let lastDay = null
+  try { lastDay = localStorage.getItem('dw_open_day') } catch {}
+  fetch('/api/opens', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deviceId: id, platform: kind, lastDay }),
+  })
+    .then(res => (res.ok ? res.json() : null))
+    .then(data => { if (data?.day) localStorage.setItem('dw_open_day', data.day) })
     .catch(() => {})
 }

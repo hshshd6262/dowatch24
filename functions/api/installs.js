@@ -22,9 +22,13 @@ export async function onRequestPost({ request, env }) {
     const path = `installs/${platform}_${deviceId}`
     const existing = await db(auth, path)
     if (existing) return json({ counted: false })
+    // Where from: Cloudflare adds the visitor's country and city to every request
+    const cf = request.cf || {}
     await db(auth, path, 'PUT', {
       p: platform,
       at: Date.now(),
+      c: /^[A-Z0-9]{2}$/.test(cf.country || '') ? cf.country : 'XX',
+      ...(cf.city ? { city: String(cf.city).slice(0, 60) } : {}),
       ...(Number.isInteger(version) && version > 0 && version < 100000 ? { v: version } : {}),
     })
     return json({ counted: true })
