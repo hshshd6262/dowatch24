@@ -4,11 +4,14 @@ import DiscordIcon, { DISCORD_URL } from './components/DiscordIcon.jsx'
 import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
 import MobileNav from './components/MobileNav.jsx'
 import UpdateNotice from './components/UpdateNotice.jsx'
+import NotifyPrompt from './components/NotifyPrompt.jsx'
 import InstallApp from './components/InstallApp.jsx'
 import { askPushInApp, platform, resumePush } from './lib/push.js'
 
 // Notifications only live inside the Android app; the website shows Install App instead
 const IN_APP = platform() === 'android-app'
+// Added to the iPhone Home Screen: iPhone needs a tap before it can ask, so it gets the notification card
+const IOS_APP = platform() === 'ios-app'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
 import { TITLE_PATH, titlePath } from './lib/links.js'
@@ -188,6 +191,7 @@ export default function App() {
   </p>
 </footer>
 {IN_APP && <UpdateNotice />}
+{IOS_APP && <NotifyPrompt />}
 <MobileNav active={mobileActive} onSelect={onMobileNav} />
 <MyListDrawer open={listOpen} onClose={closeList} onOpenTitle={item => openItem(item)} />
     </div>

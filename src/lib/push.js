@@ -43,12 +43,18 @@ export function appVersionCode() {
   try { return Number(sessionStorage.getItem('dw_app_v')) || 3 } catch { return 3 }
 }
 
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1)
+
+// 'android-app' | 'ios-app' (added to the iPhone Home Screen) | 'installed' (computer) | 'browser'
 export function platform() {
   try {
     if (document.referrer.startsWith('android-app://')) sessionStorage.setItem('dw_in_app', '1')
     if (sessionStorage.getItem('dw_in_app')) return 'android-app'
   } catch {}
-  return window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone ? 'installed' : 'browser'
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true
+  if (standalone && IS_IOS) return 'ios-app'
+  return standalone ? 'installed' : 'browser'
 }
 
 export function pushSupported() {

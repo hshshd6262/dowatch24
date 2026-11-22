@@ -403,3 +403,8 @@
 @media (prefers-reduced-motion: reduce) {
   .panel, .row, .emptyIcon, .bump { animation: none; }
 }
+
+/* iPhone Home Screen app: keep the panel's top below the status bar / notch */
+:global(html.dw-ios-app) .panel {
+  padding-top: env(safe-area-inset-top, 0px);
+}

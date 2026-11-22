@@ -199,3 +199,8 @@ button {
     font-size: 14px;
   }
 }
+/* iPhone Home Screen app: the page runs under the status bar / notch, so push the header below it */
+html.dw-ios-app header {
+  box-sizing: content-box;
+  padding-top: env(safe-area-inset-top, 0px);
+}

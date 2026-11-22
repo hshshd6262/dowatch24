@@ -37,7 +37,8 @@ export default function NotifyPrompt() {
     window.addEventListener('dw:ask-notify', autoAsk)
     window.addEventListener('dw:open-notify', show)
 
-    const t = platform() === 'android-app' ? setTimeout(autoAsk, 20000) : null
+    // In the iPhone Home Screen app: offer it ~20 s after opening (iPhone needs a tap to show its Allow box)
+    const t = platform() === 'ios-app' ? setTimeout(autoAsk, 20000) : null
     return () => {
       window.removeEventListener('dw:ask-notify', autoAsk)
       window.removeEventListener('dw:open-notify', show)
@@ -92,7 +93,7 @@ export default function NotifyPrompt() {
 
   if (!open) return null
 
-  const inApp = platform() === 'android-app'
+  const where = platform()
 
   return (
     <div className={styles.overlay} onClick={() => !busy && dismiss()}>
@@ -133,7 +134,13 @@ export default function NotifyPrompt() {
             <h2 id="notify-title" className={styles.title}>Notifications are blocked</h2>
             <p className={styles.text}>Your phone is blocking notifications from Dowatch24. To turn them on:</p>
             <ol className={styles.steps}>
-              {inApp ? (
+              {where === 'ios-app' ? (
+                <>
+                  <li>Open your iPhone's <b>Settings → Notifications</b></li>
+                  <li>Find <b>Dowatch24</b> and turn on <b>Allow Notifications</b></li>
+                  <li>Come back to the app, notifications start automatically</li>
+                </>
+              ) : where === 'android-app' ? (
                 <>
                   <li>Open your phone's <b>Settings → Apps → Dowatch24</b></li>
                   <li>Tap <b>Notifications</b> and turn them <b>on</b></li>
@@ -156,7 +163,7 @@ export default function NotifyPrompt() {
             <h2 id="notify-title" className={styles.title}>Notifications aren't available here</h2>
             <p className={styles.text}>
               {isIOS
-                ? 'On iPhone, add Dowatch24 to your Home Screen (Share → Add to Home Screen), open it from there, then tap the 🔔.'
+                ? 'Notifications need iOS 16.4 or newer. Update your iPhone in Settings → General → Software Update, then open Dowatch24 from your Home Screen.'
                 : 'This browser can’t receive notifications. Try Chrome, or install the Dowatch24 app.'}
             </p>
             <button className={styles.on} onClick={dismiss}>Got it</button>

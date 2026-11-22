@@ -8,8 +8,18 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
+  // android_app = the Android app, ios_app = added to the iPhone Home Screen,
+  // pwa = installed on a computer, browser = the normal website
   gtag('set', 'user_properties', {
-    app_mode: (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) ? 'pwa' : 'browser'
+    app_mode: (function () {
+      try {
+        var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true
+        if (new URLSearchParams(location.search).has('app_v') || document.referrer.indexOf('android-app://') === 0 ||
+            sessionStorage.getItem('dw_in_app')) return 'android_app'
+        if (standalone && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.indexOf('Macintosh') > -1 && navigator.maxTouchPoints > 1))) return 'ios_app'
+        return standalone ? 'pwa' : 'browser'
+      } catch (e) { return 'browser' }
+    })()
   });
 
   gtag('config', 'G-M0H2403NES');
@@ -23,6 +33,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Dowatch24" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- iPhone launch screens (made from the app loading screen) -->
+    <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1320x2868.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1206x2622.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1290x2796.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1179x2556.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1284x2778.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1170x2532.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1125x2436.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1242x2688.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/launch-828x1792.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/splash/launch-1242x2208.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/launch-750x1334.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash/launch-640x1136.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Dowatch24 is a free streaming website where you can watch movies and TV shows online. You do not need to pay anything. You do not need to sign up." />
@@ -45,6 +68,14 @@
             (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone
           if (!inApp) return
           document.documentElement.classList.add('dw-boot')
+          // iPhone Home Screen app: use the whole screen (content clears the notch via CSS),
+          // and start the loader from the launch picture (the D already in place)
+          var ua = navigator.userAgent
+          if (/iPad|iPhone|iPod/.test(ua) || (ua.indexOf('Macintosh') > -1 && navigator.maxTouchPoints > 1)) {
+            document.documentElement.classList.add('dw-ios-app')
+            var vp = document.querySelector('meta[name="viewport"]')
+            if (vp && vp.content.indexOf('viewport-fit') < 0) vp.content += ', viewport-fit=cover'
+          }
           var start = Date.now()
           var hide = function () {
             var el = document.getElementById('dw-boot')
@@ -108,11 +139,13 @@
       @keyframes dwBreathe { 50% { transform: scale(1.15); opacity: .7 } }
       @keyframes dwFade { to { opacity: 1 } }
       @keyframes dwSlide { from { transform: translateX(-110%) } to { transform: translateX(250%) } }
+      .dw-ios-app #dw-boot .mark { animation: dwPulse 2.4s ease-in-out 1s infinite; }
+      .dw-ios-app #dw-boot .streak { display: none; }
       @media (max-width: 380px) { #dw-boot .mark { height: 50px } #dw-boot .word { font-size: 36px } }
       @media (prefers-reduced-motion: reduce) { #dw-boot *, #dw-boot *::after { animation-duration: .01s !important; animation-iteration-count: 1 !important } }
     </style>
-    <script type="module" crossorigin src="/assets/index-3gNj8Km5.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-cIP2JurE.css">
+    <script type="module" crossorigin src="/assets/index-CxtIfC3V.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-LtdpW8OP.css">
   </head>
   <body>
     <div id="dw-boot" aria-hidden="true">

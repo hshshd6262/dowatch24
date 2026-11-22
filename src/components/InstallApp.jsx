@@ -10,6 +10,71 @@ const Download = ({ size = 16 }) => (
   </svg>
 )
 
+// iPhone icons, drawn like Safari's
+const ShareIcon = () => (
+  <svg className={styles.inlineIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Share">
+    <path d="M12 15V3M8 7l4-4 4 4" /><path d="M8 11H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2" />
+  </svg>
+)
+const AddIcon = () => (
+  <svg className={styles.inlineIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-label="Add to Home Screen">
+    <rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" />
+  </svg>
+)
+
+// Which iPhone browser: Instagram/Facebook/TikTok's built-in browsers can't add to the Home Screen
+function iosBrowser() {
+  const ua = navigator.userAgent
+  if (/FBAN|FBAV|Instagram|musical_ly|BytedanceWebview|TikTok|Snapchat|Line[/]|Twitter|LinkedInApp|GSA[/]/.test(ua)) return 'inapp'
+  if (/CriOS/.test(ua)) return 'chrome'
+  if (/FxiOS|EdgiOS|OPiOS/.test(ua)) return 'other'
+  return 'safari'
+}
+
+function IosSteps() {
+  const [browser] = useState(iosBrowser)
+  const [copied, setCopied] = useState(false)
+
+  async function copyLink() {
+    try { await navigator.clipboard.writeText('https://dowatch24.com') } catch {}
+    setCopied(true)
+    trackEvent('ios_copy_link')
+  }
+
+  if (browser === 'inapp' || browser === 'other') {
+    return (
+      <>
+        <p className={styles.text}>
+          {browser === 'inapp' ? 'This app’s built-in browser can’t install Dowatch24.' : 'Installing works in Safari.'} Open it in <b>Safari</b> first:
+        </p>
+        <ol className={styles.steps}>
+          <li>Copy the link below</li>
+          <li>Open <b>Safari</b>, paste it in the address bar and go</li>
+          <li>Tap <b>Get App</b> again</li>
+        </ol>
+        <button className={styles.primary} onClick={copyLink}>{copied ? 'Link copied ✓' : 'Copy dowatch24.com'}</button>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <p className={styles.text}>Add Dowatch24 to your Home Screen. It opens full screen like an app, with notifications.</p>
+      <ol className={styles.steps}>
+        {browser === 'chrome' ? (
+          <li>Tap <ShareIcon /> <b>Share</b> in the address bar at the top</li>
+        ) : (
+          <li>Tap <ShareIcon /> <b>Share</b> at the bottom of Safari <span className={styles.hint}>(on newer iPhones, tap <b>⋯</b> first)</span></li>
+        )}
+        <li>Scroll down and tap <AddIcon /> <b>Add to Home Screen</b></li>
+        <li>Tap <b>Add</b>, then open <b>Dowatch24</b> from your Home Screen</li>
+      </ol>
+      <p className={styles.size}>Notifications need iOS 16.4 or newer</p>
+      {browser === 'safari' && <div className={styles.pointDown} aria-hidden="true">↓</div>}
+    </>
+  )
+}
+
 // Header "Install App" button + the sheet that explains how (per device).
 // Hidden inside the Android app and installed web app.
 export default function InstallApp({ className = '' }) {
@@ -81,16 +146,7 @@ export default function InstallApp({ className = '' }) {
               </>
             )}
 
-            {kind === 'ios' && (
-              <>
-                <p className={styles.text}>On iPhone, add Dowatch24 to your Home Screen. It opens like an app.</p>
-                <ol className={styles.steps}>
-                  <li>Tap the <b>Share</b> button at the bottom of Safari</li>
-                  <li>Choose <b>Add to Home Screen</b>, then tap <b>Add</b></li>
-                  <li>Open <b>Dowatch24</b> from your Home Screen</li>
-                </ol>
-              </>
-            )}
+            {kind === 'ios' && <IosSteps />}
 
             {kind === 'web' && (
               <>

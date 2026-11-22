@@ -14,7 +14,7 @@ export async function onRequestPost({ request, env }) {
   const { deviceId, token, platform, test } = input || {}
   if (!/^[a-zA-Z0-9-]{16,64}$/.test(deviceId || '')) return json({ error: 'Bad device id' }, 400)
   if (typeof token !== 'string' || token.length < 20 || token.length > 4096) return json({ error: 'Bad token' }, 400)
-  const kind = ['android-app', 'installed', 'browser'].includes(platform) ? platform : 'browser'
+  const kind = ['android-app', 'ios-app', 'installed', 'browser'].includes(platform) ? platform : 'browser'
 
   // Which step failed is reported back (no secrets) so problems are easy to spot
   let step = 'google sign-in (check FIREBASE_SERVICE_ACCOUNT on Cloudflare)'
