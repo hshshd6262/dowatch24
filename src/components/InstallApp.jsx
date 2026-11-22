@@ -73,14 +73,6 @@ export default function InstallApp({ className = '' }) {
                 <p className={styles.size}>
                   {app?.versionName ? `Version ${app.versionName} · ` : ''}Android 7.0 or newer{app?.size ? ` · ${app.size}` : ''}
                 </p>
-                {app?.notes?.length > 0 && (
-                  <div className={styles.news}>
-                    <p className={styles.newsLabel}>What's new</p>
-                    <ul>
-                      {app.notes.map(n => <li key={n}>{n}</li>)}
-                    </ul>
-                  </div>
-                )}
                 <ol className={`${styles.steps} ${downloaded ? styles.stepsHot : ''}`}>
                   <li>Open the downloaded <b>Dowatch24.apk</b></li>
                   <li>If asked, allow <b>Install unknown apps</b> for your browser</li>

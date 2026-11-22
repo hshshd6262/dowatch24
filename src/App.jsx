@@ -1,4 +1,3 @@
-import InstallButton from './components/InstallButton.jsx'
 import Hero from './components/Hero.jsx'
 import AdBanner from './components/AdBanner.jsx'
 import SharePopup from './components/SharePopup.jsx'
@@ -189,7 +188,6 @@ export default function App() {
     © dowatch24
   </p>
 </footer>
-<InstallButton />
 <SharePopup />
 {IN_APP && <UpdateNotice />}
 <MobileNav active={mobileActive} onSelect={onMobileNav} />
