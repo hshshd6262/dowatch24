@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dowatch24.app",
+      "sha256_cert_fingerprints": [
+        "FE:06:B6:24:5A:9A:3E:92:13:7F:E5:89:A1:2C:15:32:16:F9:58:B8:EF:94:04:9A:75:E5:F4:CD:07:8A:AC:7E"
+      ]
+    }
+  }
+]
