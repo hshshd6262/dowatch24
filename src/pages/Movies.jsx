@@ -7,6 +7,7 @@ import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
 import YouMayAlsoLike from '../components/YouMayAlsoLike.jsx'
+import { toListItem } from '../lib/myList.js'
 import { requestSharePopup } from '../lib/share.js'
 import styles from './Movies.module.css'
 
@@ -109,6 +110,7 @@ export default function Movies({ showSearch, playRequest, onOpen, onTitleOpen })
     showPlayer({
       src: movieEmbedUrl(item.id),
       embed: { type: 'movie', id: item.id },
+      saveItem: toListItem(item, 'movie'),
       title: item.title,
       year: getYear(item.release_date),
       rating: formatRating(item.vote_average),

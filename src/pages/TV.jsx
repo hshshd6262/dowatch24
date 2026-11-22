@@ -7,6 +7,7 @@ import { smartSearch } from '../lib/search.js'
 import Player from '../components/Player.jsx'
 import Details from '../components/Details.jsx'
 import YouMayAlsoLike from '../components/YouMayAlsoLike.jsx'
+import { toListItem } from '../lib/myList.js'
 import ShareBar from '../components/ShareBar.jsx'
 import AdBanner from '../components/AdBanner.jsx'
 import { titlePath } from '../lib/links.js'
@@ -153,6 +154,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
     const p = {
       src: tvEmbedUrl(show.id, season, episode),
       embed: { type: 'tv', id: show.id, season, episode },
+      saveItem: toListItem(show, 'tv'),
       title: show.name,
       year: getYear(show.first_air_date),
       rating: formatRating(show.vote_average),

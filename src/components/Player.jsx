@@ -3,10 +3,12 @@ import { SERVERS, embedUrl } from '../lib/api.js'
 import ShareBar from './ShareBar.jsx'
 import AdBanner from './AdBanner.jsx'
 import ServerWarning from './ServerWarning.jsx'
+import BookmarkButton from './BookmarkButton.jsx'
 import { titlePath } from '../lib/links.js'
 import styles from './Player.module.css'
 
-export default function Player({ src, embed, title, year, rating, overview, badge, onClose }) {
+// saveItem: the movie / show the bookmark button saves (TV episodes save the whole show)
+export default function Player({ src, embed, saveItem, title, year, rating, overview, badge, onClose }) {
   // Every movie / show starts on Server 1; episodes of the same show keep the chosen server
   const titleKey = embed ? `${embed.type}-${embed.id}` : null
   const [server, setServer] = useState(SERVERS[0].id)
@@ -59,6 +61,7 @@ export default function Player({ src, embed, title, year, rating, overview, badg
         {overview && <p className={styles.overview}>{overview}</p>}
       </div>
       <div className={styles.playerBox}>
+        {embed && <BookmarkButton item={saveItem || { id: embed.id, media_type: embed.type, title, name: title }} />}
         <iframe
           key={frameSrc}
           src={frameSrc}

@@ -16,3 +16,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 navigator.serviceWorker?.getRegistrations().then(regs => {
   regs.filter(r => r.scope.includes('firebase-cloud-messaging-push-scope')).forEach(r => r.unregister())
 }).catch(() => {})
+
+// Offline page for the app / installed site (see public/sw.js)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}))
+}

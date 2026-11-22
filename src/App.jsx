@@ -3,7 +3,9 @@ import Hero from './components/Hero.jsx'
 import AdBanner from './components/AdBanner.jsx'
 import SharePopup from './components/SharePopup.jsx'
 import DiscordIcon, { DISCORD_URL } from './components/DiscordIcon.jsx'
-import React, { useEffect, useRef, useState } from 'react'
+import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
+import MobileNav from './components/MobileNav.jsx'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
 import { TITLE_PATH, titlePath } from './lib/links.js'
 import Movies from './pages/Movies.jsx'
@@ -27,6 +29,8 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [playRequest, setPlayRequest] = useState(null)
   const [titleOpen, setTitleOpen] = useState(false)
+  const [listOpen, setListOpen] = useState(false)
+  const closeList = useCallback(() => setListOpen(false), [])
   // Read before the pages' effects run, since those update the address
   const sharedLink = useRef(window.location.pathname.match(TITLE_PATH))
 
@@ -73,6 +77,17 @@ export default function App() {
     setTitleUrl(type, item, episode)
   }
 
+  // Phone tab bar: which tab is lit, and what each tab does
+  const mobileActive = listOpen ? 'list' : searchOpen ? 'search' : tab
+
+  function onMobileNav(id) {
+    if (id === 'list') return setListOpen(true)
+    if (id === 'search') return setSearchOpen(o => !o)
+    setSearchOpen(false)
+    if (id === tab) window.scrollTo({ top: 0, behavior: 'smooth' }) // tap again: back to top
+    else goTab(id)
+  }
+
   // Open a title in its own tab; autoplay starts movies straight away
   // episode (TV only) plays that season/episode straight away
   function openItem(item, autoplay = false, episode = null) {
@@ -102,6 +117,7 @@ export default function App() {
           >
             <DiscordIcon size={18} />
           </a>
+          <MyListButton className={styles.searchToggle} onClick={() => setListOpen(true)} />
           <nav className={styles.tabs}>
             <button
               className={`${styles.tab} ${tab === 'movies' ? styles.active : ''}`}
@@ -155,6 +171,8 @@ export default function App() {
 </footer>
 <InstallButton />
 <SharePopup />
+<MobileNav active={mobileActive} onSelect={onMobileNav} />
+<MyListDrawer open={listOpen} onClose={closeList} onOpenTitle={item => openItem(item)} />
     </div>
   )
 }

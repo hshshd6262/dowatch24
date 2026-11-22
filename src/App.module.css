@@ -343,8 +343,8 @@
   }
 }
 
-/* "TV Series" → "TV" when space is really tight */
-@media (max-width: 400px) {
+/* "TV Series" → "TV" on phones */
+@media (max-width: 440px) {
   .tabLong {
     display: none;
   }
@@ -413,9 +413,27 @@
   box-shadow: 0 0 18px rgba(88, 101, 242, 0.45);
 }
 
-/* Very small phones: hide the Discord icon so the header stays on one line */
-@media (max-width: 359px) {
+/* Small phones: hide the Discord icon so the header stays on one line */
+@media (max-width: 379px) {
   .discord {
     display: none;
+  }
+}
+
+/* =========================
+   PHONES: the tab bar at the bottom takes over the header buttons
+========================= */
+@media (max-width: 640px) {
+  .navGroup {
+    display: none;
+  }
+
+  .header {
+    justify-content: center;
+  }
+
+  /* room so the floating tab bar never covers content */
+  .app {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }

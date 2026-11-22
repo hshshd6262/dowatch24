@@ -136,7 +136,7 @@
 @media (max-width: 600px) {
   .installCard {
     right: 12px !important;
-    bottom: 12px !important;
+    bottom: calc(92px + env(safe-area-inset-bottom)) !important; /* above the phone tab bar */
     left: 12px !important;
 
     width: auto;
