@@ -6,6 +6,7 @@ import DiscordIcon, { DISCORD_URL } from './components/DiscordIcon.jsx'
 import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
 import MobileNav from './components/MobileNav.jsx'
 import NotifyPrompt from './components/NotifyPrompt.jsx'
+import NotifyBell from './components/NotifyBell.jsx'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
 import { TITLE_PATH, titlePath } from './lib/links.js'
@@ -107,7 +108,10 @@ export default function App() {
           <img className={styles.logoMark} src="/logo-mark.png" alt="" width="126" height="96" />
           <span className={styles.logoText}>owatch<span className={styles.logoAccent}>24</span></span>
         </button>
+        {/* Phones: the bell sits on the right of the header (other buttons live in the tab bar) */}
+        <NotifyBell className={styles.mobileBell} />
         <div className={styles.navGroup}>
+          <NotifyBell />
           <a
             className={`${styles.searchToggle} ${styles.discord}`}
             href={DISCORD_URL}

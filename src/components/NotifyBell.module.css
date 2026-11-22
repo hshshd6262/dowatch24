@@ -1,0 +1,61 @@
+.bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.bell:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.bell:active {
+  transform: scale(0.92);
+}
+
+.dot {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #0a0a0a;
+  border-radius: 50%;
+}
+
+.dotOn {
+  background: #22c55e;
+}
+
+.dotOff {
+  background: var(--red);
+  animation: ping 2s infinite;
+}
+
+@keyframes ping {
+  0% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.6); }
+  70% { box-shadow: 0 0 0 6px rgba(229, 9, 20, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0); }
+}
+
+@media (max-width: 480px) {
+  .bell {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dot {
+    top: 6px;
+    right: 7px;
+  }
+}

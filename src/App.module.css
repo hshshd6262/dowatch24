@@ -437,3 +437,22 @@
     padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }
+
+/* Notification bell on phones (desktop has it inside the header buttons) */
+.mobileBell {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .header {
+    position: sticky;
+  }
+
+  .mobileBell {
+    display: grid !important;
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+  }
+}

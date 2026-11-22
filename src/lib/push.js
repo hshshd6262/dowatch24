@@ -71,7 +71,7 @@ async function register() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ deviceId: deviceId(), token, platform: platform() }),
     })
-    if (!res.ok) throw new Error(`Subscribe failed (${res.status})`)
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Server error (${res.status})`)
     try { localStorage.setItem('dw_push_sent', JSON.stringify({ token, at: Date.now() })) } catch {}
   }
 
@@ -89,6 +89,22 @@ async function register() {
     })
   }
   return token
+}
+
+// 'unsupported' | 'default' | 'granted' | 'denied'
+export function permissionState() {
+  return pushSupported() ? Notification.permission : 'unsupported'
+}
+
+// Bell button → "Send me a test": refreshes the token, then asks the server for a test push
+export async function sendTestPush() {
+  const token = await register()
+  const res = await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deviceId: deviceId(), token, platform: platform(), test: true }),
+  })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Server error (${res.status})`)
 }
 
 // Called from a tap ("Turn on") — the browser only shows its prompt after a user action
