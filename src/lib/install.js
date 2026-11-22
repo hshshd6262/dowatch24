@@ -35,3 +35,17 @@ export async function installWeb() {
   deferred = null
   return outcome
 }
+
+// Latest Android app (public/app-version.json): version, size, what's new. Loaded once.
+let versionPromise = null
+export function getAppVersion() {
+  if (!versionPromise) {
+    versionPromise = fetch(`/app-version.json?t=${Date.now()}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .catch(() => null)
+  }
+  return versionPromise
+}
+
+// Download link that always points at the newest APK (never an old cached copy)
+export const apkUrl = info => (info?.versionCode ? `${APK_URL}?v=${info.versionCode}` : APK_URL)

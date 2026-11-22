@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { APK_URL, canInstallWeb, installKind, installWeb, isInstalled } from '../lib/install.js'
+import { apkUrl, canInstallWeb, getAppVersion, installKind, installWeb, isInstalled } from '../lib/install.js'
 import { trackEvent } from '../lib/analytics.js'
 import styles from './InstallApp.module.css'
 
@@ -16,6 +16,12 @@ export default function InstallApp({ className = '' }) {
   const [open, setOpen] = useState(false)
   const [kind] = useState(installKind)
   const [downloaded, setDownloaded] = useState(false)
+  const [app, setApp] = useState(null)
+
+  // Latest version + what's new, from public/app-version.json
+  useEffect(() => {
+    if (open && !app) getAppVersion().then(setApp)
+  }, [open, app])
 
   useEffect(() => {
     if (!open) return
@@ -61,10 +67,20 @@ export default function InstallApp({ className = '' }) {
             {kind === 'apk' && (
               <>
                 <p className={styles.text}>Free · No sign-up · Opens full screen, faster than the website.</p>
-                <a className={styles.primary} href={APK_URL} download="Dowatch24.apk" onClick={downloadApk}>
+                <a className={styles.primary} href={apkUrl(app)} download="Dowatch24.apk" onClick={downloadApk}>
                   <Download size={18} /> Download for Android
                 </a>
-                <p className={styles.size}>Android 7.0 or newer · 5 MB</p>
+                <p className={styles.size}>
+                  {app?.versionName ? `Version ${app.versionName} · ` : ''}Android 7.0 or newer{app?.size ? ` · ${app.size}` : ''}
+                </p>
+                {app?.notes?.length > 0 && (
+                  <div className={styles.news}>
+                    <p className={styles.newsLabel}>What's new</p>
+                    <ul>
+                      {app.notes.map(n => <li key={n}>{n}</li>)}
+                    </ul>
+                  </div>
+                )}
                 <ol className={`${styles.steps} ${downloaded ? styles.stepsHot : ''}`}>
                   <li>Open the downloaded <b>Dowatch24.apk</b></li>
                   <li>If asked, allow <b>Install unknown apps</b> for your browser</li>
@@ -91,7 +107,7 @@ export default function InstallApp({ className = '' }) {
                   <li>In Chrome or Edge, click the <b>install icon</b> in the address bar (or menu <b>⋮ → Install Dowatch24</b>)</li>
                   <li>On your Android phone, open <b>dowatch24.com</b> and tap <b>Get App</b></li>
                 </ol>
-                <a className={styles.secondary} href={APK_URL} download="Dowatch24.apk" onClick={downloadApk}>
+                <a className={styles.secondary} href={apkUrl(app)} download="Dowatch24.apk" onClick={downloadApk}>
                   <Download size={16} /> Download Android APK
                 </a>
               </>

@@ -7,5 +7,6 @@
     "Notifications: the app now asks to allow notifications when it opens",
     "Removed the bell button, notifications are set up automatically",
     "Updates are now announced inside the app"
-  ]
+  ],
+  "size": "5 MB"
 }

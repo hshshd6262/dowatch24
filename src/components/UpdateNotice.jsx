@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { APK_URL } from '../lib/install.js'
+import { apkUrl } from '../lib/install.js'
 import { appVersionCode } from '../lib/push.js'
 import { trackEvent } from '../lib/analytics.js'
 import styles from './UpdateNotice.module.css'
@@ -58,7 +58,7 @@ export default function UpdateNotice() {
 
         <a
           className={styles.primary}
-          href={APK_URL}
+          href={apkUrl(info)}
           download="Dowatch24.apk"
           onClick={() => { setDownloaded(true); trackEvent('apk_download', { source: 'update_notice' }) }}
         >
