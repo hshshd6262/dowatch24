@@ -100,12 +100,12 @@ function opensChart(buckets, unitLabel) {
   const max = Math.max(1, ...buckets.map(b => b.opens))
   const slot = W / n
   const gap = n > 60 ? 1 : 2
-  const bw = Math.max(1, slot - gap)
+  const bw = Math.min(48, Math.max(1, slot - gap))   // short ranges: keep bars slim
   const r = Math.min(4, bw / 2)
   const y = v => padT + (H - padB - padT) * (1 - v / max)
   const base = H - padB
   const bars = buckets.map((b, i) => {
-    const x = i * slot + gap / 2
+    const x = i * slot + (slot - bw) / 2
     const top = y(b.opens)
     const h = base - top
     const shape = h <= 0 ? '' : h < r
@@ -147,13 +147,15 @@ export async function onRequestGet({ request, env }) {
     from = back === null ? '2024-01-01' : dayKey(dayStart(today) - back * DAY)
   }
 
-  let installs = {}, devices = {}, daily = {}
+  let installs = {}, devices = {}, daily = {}, errors = {}
   try {
     const auth = await getAccessToken(env)
-    ;[installs, devices, daily] = await Promise.all([
+    ;[installs, devices, daily, errors] = await Promise.all([
       db(auth, 'installs').then(v => v || {}),
       db(auth, 'devices').then(v => v || {}),
       dailyRange(auth, from, to),
+      fetch(`${DATABASE_URL}/notifyErrors.json?${new URLSearchParams({ orderBy: '"$key"', limitToLast: '40', access_token: auth.token })}`)
+        .then(res => (res.ok ? res.json() : null)).then(v => v || {}).catch(() => ({})),
     ])
   } catch (err) {
     return page(`<h1>Couldn't load stats</h1><p>${esc(err.message || err)}</p>`, 500)
@@ -236,6 +238,33 @@ export async function onRequestGet({ request, env }) {
   }
   const pushTotal = sumObj(push)
 
+  // ----- Notification check-up -----
+  // Status of the people opening the app (each person once a day), and the card's steps
+  const perm = { granted: 0, denied: 0, default: 0, unsupported: 0 }
+  const steps = {}
+  for (const d of days) {
+    const x = daily[d] || {}
+    for (const st of Object.keys(perm)) perm[st] += sumObj(x.perm?.[st])
+    for (const [ev, byPlatform] of Object.entries(x.n || {})) steps[ev] = (steps[ev] || 0) + sumObj(byPlatform)
+  }
+  const permTotal = sumObj(perm)
+  const pct = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '–')
+  const recentErrors = Object.values(errors).filter(e => e && inRange(e.at)).sort((a, b) => b.at - a.at).slice(0, 15)
+  const when = t => new Date(t + NEPAL_OFFSET).toISOString().slice(0, 16).replace('T', ' ')
+  const PERM_LABELS = { granted: ['Allowed', 'notifications on'], denied: ['Blocked', 'said no / turned off'], default: ['Not decided yet', 'not asked or no answer'], unsupported: ['Not possible', 'phone/browser can’t do notifications'] }
+  const STEP_LABELS = [['shown', 'Card shown'], ['tap', 'Tapped “Turn on”'], ['allowed', 'Allowed'], ['saved', 'Signed up (saved)'], ['later', 'Tapped “Not now”'], ['denied', 'Chose “Don’t allow”'], ['closed', 'Closed the Allow box'], ['failed', 'Sign-up failed (error)']]
+  const checkup = `
+<h2>Notification check-up</h2>
+${permTotal ? `<div class="tiles">${Object.entries(PERM_LABELS).map(([k, [name, hint]]) => `<div class="tile${k === 'granted' ? ' hero' : ''}"><div class="n">${pct(perm[k], permTotal)}</div><div class="l">${name}</div><div class="s">${fmt(perm[k])} · ${hint}</div></div>`).join('')}</div>
+<p class="note">Notification status of the people who opened the app in this period (each person once a day).</p>`
+  : '<div class="empty">No data yet: this starts counting with this update, the next time people open the app.</div>'}
+<table style="margin-top:12px"><thead><tr><th>Step (the 10-second card)</th><th class="num">Count</th></tr></thead><tbody>
+${STEP_LABELS.map(([k, name]) => `<tr><td>${name}</td><td class="num">${fmt(steps[k] || 0)}</td></tr>`).join('')}
+</tbody></table>
+${recentErrors.length ? `<h2>Latest sign-up errors</h2><table><thead><tr><th>When</th><th>Where</th><th>Error</th></tr></thead><tbody>
+${recentErrors.map(e => `<tr><td style="white-space:nowrap">${esc(when(e.at))}</td><td>${esc(PLATFORMS[e.p] || e.p)} ${flag(e.c || 'XX')}</td><td>${esc(e.m)}<div class="s" style="color:var(--ink3);font-size:11px">${esc(e.ua)}</div></td></tr>`).join('')}
+</tbody></table>` : ''}`
+
   // ----- Page -----
   const k = encodeURIComponent(key)
   const label = r === 'custom' ? `${from} → ${to}` : RANGES[r]
@@ -271,6 +300,8 @@ ${opensTotal ? opensChart(buckets, unitLabel) : '<div class="empty" style="margi
 <div class="tile hero"><div class="n">${fmt(pushTotal)}</div><div class="l">turned notifications on</div><div class="s">${fmt(pushAll)} all time</div></div>
 ${Object.entries(PUSH_PLATFORMS).map(([p, name]) => `<div class="tile"><div class="n">${fmt(push[p])}</div><div class="l">${name}</div></div>`).join('')}
 </div>
+
+${checkup}
 
 <div class="cols">
 ${rankTable('Installs by country', countryRows(instCountry), 'Installs')}

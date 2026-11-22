@@ -1,6 +1,6 @@
 // Counts installs (first open on a device, once) and opens (every time the app is opened).
 // Android app / iPhone Home Screen app / app installed on a computer. Stats: /stats?key=ADMIN_KEY
-import { appVersionCode, deviceId, platform } from './push.js'
+import { appVersionCode, deviceId, permissionState, platform } from './push.js'
 import { trackEvent } from './analytics.js'
 
 const KIND = { 'android-app': 'android', 'ios-app': 'ios', installed: 'desktop' }
@@ -41,7 +41,7 @@ export function reportOpen() {
   fetch('/api/opens', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deviceId: id, platform: kind, lastDay }),
+    body: JSON.stringify({ deviceId: id, platform: kind, lastDay, perm: permissionState() }),
   })
     .then(res => (res.ok ? res.json() : null))
     .then(data => { if (data?.day) localStorage.setItem('dw_open_day', data.day) })

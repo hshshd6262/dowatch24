@@ -64,6 +64,19 @@ export function pushSupported() {
 let messaging = null
 let listening = false
 
+// Step tracking for /stats (which step of the notification sign-up people reach)
+const EVENT_PLATFORM = { 'android-app': 'android', 'ios-app': 'ios', installed: 'desktop', browser: 'web' }
+export function notifyEvent(event, message) {
+  try {
+    fetch('/api/notify-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, platform: EVENT_PLATFORM[platform()] || 'web', ...(message ? { message: String(message).slice(0, 300) } : {}) }),
+      keepalive: true,
+    }).catch(() => {})
+  } catch {}
+}
+
 async function register() {
   const [{ initializeApp, getApps }, { getMessaging, getToken, onMessage, isSupported }] = await Promise.all([
     import('firebase/app'),
@@ -96,6 +109,7 @@ async function register() {
     })
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Server error (${res.status})`)
     try { localStorage.setItem('dw_push_sent', JSON.stringify({ token, at: Date.now() })) } catch {}
+    if (last.token !== token) notifyEvent('saved')   // a new phone (or new token) is now signed up
   }
 
   // While the site is open, Firebase doesn't show notifications itself
@@ -141,6 +155,15 @@ export async function enablePush() {
 // On each visit: if already allowed, keep the token fresh on the server
 export function resumePush() {
   if (!pushSupported() || Notification.permission !== 'granted') return
-  register().catch(err => console.warn('Push refresh failed', err))
+  register().catch(err => {
+    console.warn('Push refresh failed', err)
+    // report the error at most once a day per phone
+    try {
+      const today = new Date().toDateString()
+      if (localStorage.getItem('dw_push_fail_day') === today) return
+      localStorage.setItem('dw_push_fail_day', today)
+    } catch {}
+    notifyEvent('failed', `auto: ${err?.message || err}`)
+  })
 }
 

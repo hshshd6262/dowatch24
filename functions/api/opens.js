@@ -20,7 +20,7 @@ const plusOne = { '.sv': { increment: 1 } }
 export async function onRequestPost({ request, env }) {
   let input
   try { input = await request.json() } catch { return json({ error: 'Bad request' }, 400) }
-  const { deviceId, platform, lastDay } = input || {}
+  const { deviceId, platform, lastDay, perm } = input || {}
   if (!/^[a-zA-Z0-9-]{16,64}$/.test(deviceId || '')) return json({ error: 'Bad device id' }, 400)
   if (!PLATFORMS.includes(platform)) return json({ error: 'Bad platform' }, 400)
 
@@ -31,6 +31,8 @@ export async function onRequestPost({ request, env }) {
     [`daily/${day}/o/${platform}`]: plusOne,
     [`daily/${day}/oc/${country}`]: plusOne,
     ...(firstToday ? { [`daily/${day}/u/${platform}`]: plusOne, [`daily/${day}/uc/${country}`]: plusOne } : {}),
+    // notification status of the people opening the app (once a day each)
+    ...(firstToday && ['granted', 'denied', 'default', 'unsupported'].includes(perm) ? { [`daily/${day}/perm/${perm}/${platform}`]: plusOne } : {}),
   }
   try {
     const auth = await getAccessToken(env)

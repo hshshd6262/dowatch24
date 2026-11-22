@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { enablePush, permissionState, platform, pushSupported, resumePush, sendTestPush } from '../lib/push.js'
+import { enablePush, notifyEvent, permissionState, platform, pushSupported, resumePush, sendTestPush } from '../lib/push.js'
 import styles from './NotifyPrompt.module.css'
 
 // "Not now" waits a week before the card pops up by itself again (the bell always opens it)
@@ -33,7 +33,9 @@ export default function NotifyPrompt() {
     resumePush()
 
     // Automatic moments: only when it makes sense to ask
-    const autoAsk = () => { if (pushSupported() && Notification.permission === 'default' && !snoozed()) show() }
+    const autoAsk = () => {
+      if (pushSupported() && Notification.permission === 'default' && !snoozed()) { show(); notifyEvent('shown') }
+    }
     window.addEventListener('dw:ask-notify', autoAsk)
     window.addEventListener('dw:open-notify', show)
 
@@ -56,7 +58,7 @@ export default function NotifyPrompt() {
   }, [open, view, busy])
 
   function dismiss() {
-    if (view === 'ask') snooze()
+    if (view === 'ask') { snooze(); notifyEvent('later') }
     setOpen(false)
     window.dispatchEvent(new Event('dw:notify-changed'))
   }
@@ -64,13 +66,17 @@ export default function NotifyPrompt() {
   async function turnOn() {
     setBusy(true)
     setMessage('')
+    notifyEvent('tap')
     try {
       const result = await enablePush()
-      if (result === 'granted') setView('done')
-      else if (result === 'denied') setView('blocked')
-      else { setView('ask'); setMessage('You closed the permission box. Tap the button and choose Allow.') }
+      if (result === 'granted') { setView('done'); notifyEvent('allowed') }
+      else if (result === 'denied') { setView('blocked'); notifyEvent('denied') }
+      else { setView('ask'); setMessage('You closed the permission box. Tap the button and choose Allow.'); notifyEvent('closed') }
     } catch (err) {
       console.error(err)
+      // allowed, but signing this phone up failed: record the exact error for /stats
+      if (Notification.permission === 'granted') notifyEvent('allowed')
+      notifyEvent('failed', `card: ${err?.message || err}`)
       setView('ask')
       setMessage(`Couldn't turn on notifications: ${err.message || err}`)
     }
