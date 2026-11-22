@@ -50,7 +50,7 @@ function IosSteps() {
         <ol className={styles.steps}>
           <li>Copy the link below</li>
           <li>Open <b>Safari</b>, paste it in the address bar and go</li>
-          <li>Tap <b>Get App</b> again</li>
+          <li>Tap <b>Install App</b> again</li>
         </ol>
         <button className={styles.primary} onClick={copyLink}>{copied ? 'Link copied ✓' : 'Copy dowatch24.com'}</button>
       </>
@@ -117,7 +117,7 @@ export default function InstallApp({ className = '' }) {
       <button className={`${styles.btn} ${className}`} onClick={onClick} aria-label="Install the Dowatch24 app">
         <Download />
         <span className={styles.long}>Install App</span>
-        <span className={styles.short}>Get App</span>
+        <span className={styles.short}>Install App</span>
       </button>
 
       {/* Rendered on <body>: the header's blur would otherwise trap the sheet inside the header */}
@@ -153,7 +153,7 @@ export default function InstallApp({ className = '' }) {
                 <p className={styles.text}>Install Dowatch24 on this computer, or get the Android app on your phone.</p>
                 <ol className={styles.steps}>
                   <li>In Chrome or Edge, click the <b>install icon</b> in the address bar (or menu <b>⋮ → Install Dowatch24</b>)</li>
-                  <li>On your Android phone, open <b>dowatch24.com</b> and tap <b>Get App</b></li>
+                  <li>On your Android phone, open <b>dowatch24.com</b> and tap <b>Install App</b></li>
                 </ol>
                 <a className={styles.secondary} href={apkUrl(app)} download="Dowatch24.apk" onClick={downloadApk}>
                   <Download size={16} /> Download Android APK

@@ -458,3 +458,10 @@
     transform: translateY(-50%);
   }
 }
+
+/* Very small phones: logo on the left so it clears the Install App button */
+@media (max-width: 340px) {
+  .header {
+    justify-content: flex-start;
+  }
+}

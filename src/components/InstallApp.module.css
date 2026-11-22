@@ -260,3 +260,15 @@
     opacity: 0.55;
   }
 }
+
+/* Narrow phones: "Install App" must not touch the centred logo */
+@media (max-width: 380px) {
+  .btn svg {
+    display: none;
+  }
+
+  .btn {
+    padding: 0 11px;
+    font-size: 12px;
+  }
+}

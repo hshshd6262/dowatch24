@@ -13,7 +13,7 @@ const VAPID_KEY = 'BMD_tFFlqgvLWqzJY5nCFzSiwZ7dHeHZlWf18VxkVONBFGJ1Sqd6vPk4Q5d_O
 const SW_SCOPE = '/firebase-cloud-messaging-push-scope'
 
 // Anonymous id for this device, so the server can update the same record
-function deviceId() {
+export function deviceId() {
   try {
     let id = localStorage.getItem('dw_device_id')
     if (!id) {
