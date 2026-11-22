@@ -19,10 +19,20 @@ th:first-child,td:first-child{text-align:left}th{color:#888;font-weight:600;font
 @media(max-width:520px){.grid{grid-template-columns:1fr}}</style></head><body><main>${body}</main></body></html>`,
   { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } })
 
+// Password box (typing it avoids problems with #, &, + or spaces in a web address)
+const loginForm = message => page(`<h1>Dowatch<b>24</b> installs</h1>
+<p class="sub">${message}</p>
+<form method="get" action="/stats" style="display:flex;gap:8px;max-width:420px">
+<input name="key" type="password" placeholder="ADMIN_KEY password" autofocus required
+ style="flex:1;padding:12px 14px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;font:inherit">
+<button style="padding:12px 18px;border:0;border-radius:10px;background:#e50914;color:#fff;font:inherit;font-weight:700">Open</button>
+</form>`, 403)
+
 export async function onRequestGet({ request, env }) {
-  const key = new URL(request.url).searchParams.get('key')
+  const key = (new URL(request.url).searchParams.get('key') || '').trim()
   if (!env.ADMIN_KEY) return page('<h1>Stats are locked</h1><p>Add a secret named <b>ADMIN_KEY</b> in Cloudflare Pages → Settings → Variables and Secrets, redeploy, then open <code>/stats?key=YOUR_KEY</code>.</p>', 403)
-  if (key !== env.ADMIN_KEY) return page('<h1>Wrong key</h1>', 403)
+  if (!key) return loginForm('Enter your password to see the stats.')
+  if (key !== String(env.ADMIN_KEY).trim()) return loginForm('Wrong password, try again. It must match the ADMIN_KEY secret in Cloudflare Pages exactly (capital letters count).')
 
   let rows = {}
   try {
