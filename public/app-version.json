@@ -1,0 +1,11 @@
+{
+  "versionCode": 4,
+  "versionName": "1.0.3",
+  "minVersionCode": 4,
+  "notes": [
+    "Fixed: the app closed or showed an error right after opening",
+    "Notifications: the app now asks to allow notifications when it opens",
+    "Removed the bell button, notifications are set up automatically",
+    "Updates are now announced inside the app"
+  ]
+}

@@ -5,10 +5,9 @@ import SharePopup from './components/SharePopup.jsx'
 import DiscordIcon, { DISCORD_URL } from './components/DiscordIcon.jsx'
 import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
 import MobileNav from './components/MobileNav.jsx'
-import NotifyPrompt from './components/NotifyPrompt.jsx'
-import NotifyBell from './components/NotifyBell.jsx'
+import UpdateNotice from './components/UpdateNotice.jsx'
 import InstallApp from './components/InstallApp.jsx'
-import { platform } from './lib/push.js'
+import { platform, resumePush } from './lib/push.js'
 
 // Notifications only live inside the Android app; the website shows Install App instead
 const IN_APP = platform() === 'android-app'
@@ -55,6 +54,16 @@ export default function App() {
     setHomeKey(k => k + 1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  // Inside the app: Android already asked "Allow notifications?" on launch.
+  // If allowed, register this phone for pushes (no bell or card needed).
+  useEffect(() => {
+    if (!IN_APP) return
+    resumePush()
+    const onShow = () => document.visibilityState === 'visible' && resumePush()
+    document.addEventListener('visibilitychange', onShow)
+    return () => document.removeEventListener('visibilitychange', onShow)
+  }, [])
 
   // Opening a shared link like /movie/123 opens that title
   useEffect(() => {
@@ -113,10 +122,10 @@ export default function App() {
           <img className={styles.logoMark} src="/logo-mark.png" alt="" width="126" height="96" />
           <span className={styles.logoText}>owatch<span className={styles.logoAccent}>24</span></span>
         </button>
-        {/* Phones: right side of the header (other buttons live in the tab bar) */}
-        {IN_APP ? <NotifyBell className={styles.mobileBell} /> : <InstallApp className={styles.mobileBell} />}
+        {/* Phones: right side of the header (other buttons live in the tab bar). Not shown inside the app. */}
+        {!IN_APP && <InstallApp className={styles.mobileBell} />}
         <div className={styles.navGroup}>
-          {IN_APP ? <NotifyBell /> : <InstallApp />}
+          {!IN_APP && <InstallApp />}
           <a
             className={`${styles.searchToggle} ${styles.discord}`}
             href={DISCORD_URL}
@@ -181,7 +190,7 @@ export default function App() {
 </footer>
 <InstallButton />
 <SharePopup />
-{IN_APP && <NotifyPrompt />}
+{IN_APP && <UpdateNotice />}
 <MobileNav active={mobileActive} onSelect={onMobileNav} />
 <MyListDrawer open={listOpen} onClose={closeList} onOpenTitle={item => openItem(item)} />
     </div>

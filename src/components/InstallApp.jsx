@@ -64,7 +64,7 @@ export default function InstallApp({ className = '' }) {
                 <a className={styles.primary} href={APK_URL} download="Dowatch24.apk" onClick={downloadApk}>
                   <Download size={18} /> Download for Android
                 </a>
-                <p className={styles.size}>Android 7.0 or newer · 2.3 MB</p>
+                <p className={styles.size}>Android 7.0 or newer · 5 MB</p>
                 <ol className={`${styles.steps} ${downloaded ? styles.stepsHot : ''}`}>
                   <li>Open the downloaded <b>Dowatch24.apk</b></li>
                   <li>If asked, allow <b>Install unknown apps</b> for your browser</li>

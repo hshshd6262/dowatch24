@@ -26,6 +26,23 @@ function deviceId() {
   }
 }
 
+// The Android app opens the site with ?app_v=<versionCode> (from 1.0.3 on)
+function readAppVersion() {
+  try {
+    const v = new URLSearchParams(location.search).get('app_v')
+    if (v && /^[0-9]+$/.test(v)) {
+      sessionStorage.setItem('dw_in_app', '1')
+      sessionStorage.setItem('dw_app_v', v)
+    }
+  } catch {}
+}
+readAppVersion()
+
+// Version code of the Android app running this page (apps older than 1.0.3 don't send one)
+export function appVersionCode() {
+  try { return Number(sessionStorage.getItem('dw_app_v')) || 3 } catch { return 3 }
+}
+
 export function platform() {
   try {
     if (document.referrer.startsWith('android-app://')) sessionStorage.setItem('dw_in_app', '1')
