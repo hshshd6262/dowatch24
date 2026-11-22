@@ -19,6 +19,31 @@
     0 0 50px rgba(229, 9, 20, 0.08);
 }
 
+/* Swipeable track: one slide per screen width */
+.hero {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.track {
+  display: flex;
+  height: 100%;
+  will-change: transform;
+}
+
+.trackAnimate {
+  transition: transform 0.6s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #080808;
+}
+
 .backdrop {
   position: absolute;
   inset: 0;
@@ -27,14 +52,21 @@
   height: 100%;
 
   object-fit: cover;
-
   opacity: 0.9;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  animation: fadeIn 0.5s ease both;
+}
 
-  transition:
-    opacity 0.6s ease,
-    transform 7s ease;
+/* slow zoom on the slide being shown */
+.slideActive .backdrop {
+  animation: fadeIn 0.5s ease both, slowZoom 7s ease forwards;
+}
 
-  animation: slowZoom 7s ease forwards;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
 }
 
 @keyframes slowZoom {
@@ -43,8 +75,18 @@
   }
 
   to {
-    transform: scale(1.04);
+    transform: scale(1.05);
   }
+}
+
+/* text of the neighbouring slides is dimmed and rises in when it arrives */
+.slide .content {
+  transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.slide:not(.slideActive) .content {
+  opacity: 0.35;
+  transform: translateY(10px);
 }
 
 .overlay {
@@ -220,9 +262,38 @@
     background 0.25s;
 }
 
+.dots button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
 .dots button.dotActive {
   width: 40px;
+}
+
+/* the active dot fills up like a timer until the next slide */
+.dotFill {
+  position: absolute;
+  inset: 0;
   background: #e50914;
+  border-radius: inherit;
+  transform-origin: left;
+  animation: dotFill 7s linear forwards;
+}
+
+.dotPaused {
+  animation-play-state: paused;
+}
+
+@keyframes dotFill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* =========================

@@ -1,6 +1,5 @@
 import Hero from './components/Hero.jsx'
 import AdBanner from './components/AdBanner.jsx'
-import SharePopup from './components/SharePopup.jsx'
 import DiscordIcon, { DISCORD_URL } from './components/DiscordIcon.jsx'
 import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
 import MobileNav from './components/MobileNav.jsx'
@@ -188,7 +187,6 @@ export default function App() {
     © dowatch24
   </p>
 </footer>
-<SharePopup />
 {IN_APP && <UpdateNotice />}
 <MobileNav active={mobileActive} onSelect={onMobileNav} />
 <MyListDrawer open={listOpen} onClose={closeList} onOpenTitle={item => openItem(item)} />
