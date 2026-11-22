@@ -39,14 +39,29 @@ export default function NotifyPrompt() {
     window.addEventListener('dw:ask-notify', autoAsk)
     window.addEventListener('dw:open-notify', show)
 
-    // In the Android app and iPhone Home Screen app: offer it ~10 s after opening.
+    // In the Android app and iPhone Home Screen app: offer it 2 s after opening.
     // Phones only show their real "Allow notifications?" box after a tap, so the card's button does that.
     const where = platform()
-    const t = where === 'android-app' || where === 'ios-app' ? setTimeout(autoAsk, 10000) : null
+    // 2 s after the opening animation has finished (so the card isn't hidden behind it)
+    let t = null
+    let watcher = null
+    if (where === 'android-app' || where === 'ios-app') {
+      const html = document.documentElement
+      const start = () => { t = setTimeout(autoAsk, 2000) }
+      if (!html.classList.contains('dw-boot')) start()
+      else {
+        watcher = new MutationObserver(() => {
+          if (html.classList.contains('dw-boot')) return
+          watcher.disconnect(); watcher = null; start()
+        })
+        watcher.observe(html, { attributes: true, attributeFilter: ['class'] })
+      }
+    }
     return () => {
       window.removeEventListener('dw:ask-notify', autoAsk)
       window.removeEventListener('dw:open-notify', show)
       clearTimeout(t)
+      watcher?.disconnect()
     }
   }, [])
 

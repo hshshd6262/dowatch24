@@ -127,16 +127,10 @@
   color: #ddd;
 }
 
+/* Phones: card in the middle of the screen */
 @media (max-width: 520px) {
   .overlay {
-    align-items: end;
-    padding: 0;
-  }
-
-  .card {
-    max-width: none;
-    border-radius: 22px 22px 0 0;
-    padding-bottom: calc(1.3rem + env(safe-area-inset-bottom));
+    padding: 20px;
   }
 }
 
