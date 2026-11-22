@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { trackEvent } from '../lib/analytics.js'
+import { APK_URL, isAndroid } from '../lib/install.js'
 import styles from './InstallButton.module.css'
 
 const DISMISS_KEY = 'dowatch24_install_dismissed'
@@ -50,6 +51,14 @@ export default function InstallButton() {
 
   async function installApp() {
     if (!installPrompt) return
+
+    // Android gets the real app (APK) instead of the web app
+    if (isAndroid) {
+      trackEvent('apk_download', { source: 'install_card' })
+      window.location.href = APK_URL
+      setVisible(false)
+      return
+    }
 
     trackEvent('pwa_install_click')
     installPrompt.prompt()

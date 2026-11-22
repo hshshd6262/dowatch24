@@ -7,6 +7,11 @@ import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
 import MobileNav from './components/MobileNav.jsx'
 import NotifyPrompt from './components/NotifyPrompt.jsx'
 import NotifyBell from './components/NotifyBell.jsx'
+import InstallApp from './components/InstallApp.jsx'
+import { platform } from './lib/push.js'
+
+// Notifications only live inside the Android app; the website shows Install App instead
+const IN_APP = platform() === 'android-app'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
 import { TITLE_PATH, titlePath } from './lib/links.js'
@@ -108,10 +113,10 @@ export default function App() {
           <img className={styles.logoMark} src="/logo-mark.png" alt="" width="126" height="96" />
           <span className={styles.logoText}>owatch<span className={styles.logoAccent}>24</span></span>
         </button>
-        {/* Phones: the bell sits on the right of the header (other buttons live in the tab bar) */}
-        <NotifyBell className={styles.mobileBell} />
+        {/* Phones: right side of the header (other buttons live in the tab bar) */}
+        {IN_APP ? <NotifyBell className={styles.mobileBell} /> : <InstallApp className={styles.mobileBell} />}
         <div className={styles.navGroup}>
-          <NotifyBell />
+          {IN_APP ? <NotifyBell /> : <InstallApp />}
           <a
             className={`${styles.searchToggle} ${styles.discord}`}
             href={DISCORD_URL}
@@ -176,7 +181,7 @@ export default function App() {
 </footer>
 <InstallButton />
 <SharePopup />
-<NotifyPrompt />
+{IN_APP && <NotifyPrompt />}
 <MobileNav active={mobileActive} onSelect={onMobileNav} />
 <MyListDrawer open={listOpen} onClose={closeList} onOpenTitle={item => openItem(item)} />
     </div>
