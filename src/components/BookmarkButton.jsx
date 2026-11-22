@@ -45,7 +45,7 @@ export default function BookmarkButton({ item, className = '' }) {
     if (nowSaved) setTimeout(() => window.dispatchEvent(new Event('dw:ask-notify')), 1400)
   }
 
-  const label = saved ? 'Remove from My List' : 'Save to My List'
+  const label = saved ? 'Remove from Bookmarks' : 'Save to Bookmarks'
 
   return (
     <div className={`${styles.wrap} ${className}`}>
@@ -62,11 +62,11 @@ export default function BookmarkButton({ item, className = '' }) {
 
       {tip && (
         <div className={`${styles.tip} ${tip === 'saved' ? styles.tipSaved : ''}`} role="status">
-          {tip === 'saved' && <><b>Saved ✓</b><span>Find it in My List (🔖 at the top)</span></>}
-          {tip === 'removed' && <b>Removed from My List</b>}
+          {tip === 'saved' && <><b>Saved ✓</b><span>Find it in Bookmarks (🔖)</span></>}
+          {tip === 'removed' && <b>Removed from Bookmarks</b>}
           {(tip === 'hint' || tip === 'hover') && (saved
             ? <b>In your list · tap to remove</b>
-            : <><b>Save this for later</b><span>Watch it anytime from My List</span></>)}
+            : <><b>Save this for later</b><span>Watch it anytime from Bookmarks</span></>)}
         </div>
       )}
     </div>

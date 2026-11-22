@@ -14,7 +14,7 @@ const ITEMS = [
   { id: 'movies', label: 'Movies' },
   { id: 'tv', label: 'TV' },
   { id: 'search', label: 'Search' },
-  { id: 'list', label: 'My List' },
+  { id: 'list', label: 'Bookmarks' },
 ]
 
 // Floating Liquid Glass tab bar for phones. The glass bubble behind the active

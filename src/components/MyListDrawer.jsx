@@ -9,7 +9,7 @@ const BookmarkIcon = ({ size = 18, filled = false }) => (
   </svg>
 )
 
-// Header button with a live count; opens the My List panel
+// Header button with a live count; opens the Bookmarks panel
 export function MyListButton({ className, onClick }) {
   const count = useMyList().length
   const [bump, setBump] = useState(false)
@@ -25,8 +25,8 @@ export function MyListButton({ className, onClick }) {
     <button
       className={`${className} ${styles.headerBtn} ${bump ? styles.bump : ''}`}
       onClick={onClick}
-      aria-label={`My List${count ? `, ${count} saved` : ''}`}
-      title="My List"
+      aria-label={`Bookmarks${count ? `, ${count} saved` : ''}`}
+      title="Bookmarks"
     >
       <BookmarkIcon filled={count > 0} />
       {count > 0 && <span className={styles.badge}>{count > 99 ? '99+' : count}</span>}
@@ -78,10 +78,10 @@ export default function MyListDrawer({ open, onClose, onOpenTitle }) {
         <header className={styles.head}>
           <div className={styles.headIcon}><BookmarkIcon size={20} filled /></div>
           <div>
-            <h2 id="mylist-title" className={styles.title}>My List</h2>
+            <h2 id="mylist-title" className={styles.title}>Bookmarks</h2>
             <p className={styles.sub}>{list.length ? `${list.length} saved to watch later` : 'Your watch-later shelf'}</p>
           </div>
-          <button className={styles.close} onClick={onClose} aria-label="Close My List">✕</button>
+          <button className={styles.close} onClick={onClose} aria-label="Close Bookmarks">✕</button>
         </header>
 
         {list.length > 0 && (
@@ -137,7 +137,7 @@ export default function MyListDrawer({ open, onClose, onOpenTitle }) {
                         </span>
                       </span>
                     </button>
-                    <button className={styles.remove} onClick={() => remove(item)} aria-label={`Remove ${title} from My List`} title="Remove">
+                    <button className={styles.remove} onClick={() => remove(item)} aria-label={`Remove ${title} from Bookmarks`} title="Remove">
                       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
                     </button>
                   </li>

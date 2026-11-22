@@ -428,8 +428,9 @@
     display: none;
   }
 
+  /* logo on the left, Install App on the right */
   .header {
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   /* room so the floating tab bar never covers content */
@@ -456,12 +457,5 @@
     top: 50%;
     right: 12px;
     transform: translateY(-50%);
-  }
-}
-
-/* Very small phones: logo on the left so it clears the Install App button */
-@media (max-width: 340px) {
-  .header {
-    justify-content: flex-start;
   }
 }
