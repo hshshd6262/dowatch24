@@ -6,7 +6,7 @@ import MobileNav from './components/MobileNav.jsx'
 import UpdateNotice from './components/UpdateNotice.jsx'
 import NotifyPrompt from './components/NotifyPrompt.jsx'
 import InstallApp from './components/InstallApp.jsx'
-import { askPushInApp, platform, resumePush } from './lib/push.js'
+import { platform, resumePush } from './lib/push.js'
 
 // Notifications only live inside the Android app; the website shows Install App instead
 const IN_APP = platform() === 'android-app'
@@ -61,10 +61,9 @@ export default function App() {
   useEffect(() => {
     if (!IN_APP) return
     resumePush()
-    const stopAsking = askPushInApp(20000)
     const onShow = () => document.visibilityState === 'visible' && resumePush()
     document.addEventListener('visibilitychange', onShow)
-    return () => { stopAsking(); document.removeEventListener('visibilitychange', onShow) }
+    return () => document.removeEventListener('visibilitychange', onShow)
   }, [])
 
   // Opening a shared link like /movie/123 opens that title
@@ -191,7 +190,7 @@ export default function App() {
   </p>
 </footer>
 {IN_APP && <UpdateNotice />}
-{IOS_APP && <NotifyPrompt />}
+{(IN_APP || IOS_APP) && <NotifyPrompt />}
 <MobileNav active={mobileActive} onSelect={onMobileNav} />
 <MyListDrawer open={listOpen} onClose={closeList} onOpenTitle={item => openItem(item)} />
     </div>

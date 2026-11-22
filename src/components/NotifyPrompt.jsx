@@ -37,8 +37,10 @@ export default function NotifyPrompt() {
     window.addEventListener('dw:ask-notify', autoAsk)
     window.addEventListener('dw:open-notify', show)
 
-    // In the iPhone Home Screen app: offer it ~20 s after opening (iPhone needs a tap to show its Allow box)
-    const t = platform() === 'ios-app' ? setTimeout(autoAsk, 20000) : null
+    // In the Android app and iPhone Home Screen app: offer it ~20 s after opening.
+    // Phones only show their real "Allow notifications?" box after a tap, so the card's button does that.
+    const where = platform()
+    const t = where === 'android-app' || where === 'ios-app' ? setTimeout(autoAsk, 20000) : null
     return () => {
       window.removeEventListener('dw:ask-notify', autoAsk)
       window.removeEventListener('dw:open-notify', show)

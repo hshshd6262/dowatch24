@@ -1,11 +1,10 @@
 {
-  "versionCode": 5,
-  "versionName": "1.0.4",
+  "versionCode": 6,
+  "versionName": "1.0.5",
   "minVersionCode": 4,
   "size": "5 MB",
   "notes": [
-    "New animated Dowatch24 loading screen instead of a black screen",
-    "Notifications are asked a little later, not right when the app opens",
-    "Notifications now show the Dowatch24 logo in the status bar"
+    "Fixed: the notifications permission box now shows reliably",
+    "A small card offers notifications after a few seconds, one tap to allow"
   ]
 }
