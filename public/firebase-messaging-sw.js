@@ -15,10 +15,21 @@ firebase.initializeApp({
 // and tapping one opens the link set by the server.
 firebase.messaging()
 
-// Taps on notifications we show ourselves (while the site is open)
+// Where a tap should go. Messages sent from the Firebase console have no link field,
+// so they can carry one as custom data: key "link", value like /movie/550.
+function linkFor(data) {
+  const fcm = data.FCM_MSG
+  if (!fcm) return data.link || '/'
+  return fcm.data?.link || '/'
+}
+
 self.addEventListener('notificationclick', event => {
   const data = event.notification.data || {}
-  if (data.FCM_MSG) return
+  const fcm = data.FCM_MSG
+  // Firebase opens messages sent with a link (our server's ones) by itself
+  if (fcm && (fcm.fcmOptions?.link || fcm.notification?.click_action)) return
   event.notification.close()
-  event.waitUntil(clients.openWindow(data.link || '/'))
+  const url = new URL(linkFor(data), self.location.origin)
+  if (url.origin !== self.location.origin) url.href = self.location.origin + '/'
+  event.waitUntil(clients.openWindow(url.href))
 })
