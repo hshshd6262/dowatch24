@@ -41,6 +41,8 @@ export default function BookmarkButton({ item, className = '' }) {
   function onClick() {
     const nowSaved = toggleSaved(item)
     flash(nowSaved ? 'saved' : 'removed', 2200)
+    // A good moment to offer notifications for new episodes
+    if (nowSaved) setTimeout(() => window.dispatchEvent(new Event('dw:ask-notify')), 1400)
   }
 
   const label = saved ? 'Remove from My List' : 'Save to My List'

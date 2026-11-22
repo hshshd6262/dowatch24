@@ -1,0 +1,8 @@
+name = "dowatch24-notify"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+# Daily "trending now" notification. Cron times are UTC:
+# 13:15 UTC = 7:00 PM Nepal, 1:15 PM UK, 8:15 AM US East.
+[triggers]
+crons = ["15 13 * * *"]

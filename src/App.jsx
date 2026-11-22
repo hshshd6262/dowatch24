@@ -5,6 +5,7 @@ import SharePopup from './components/SharePopup.jsx'
 import DiscordIcon, { DISCORD_URL } from './components/DiscordIcon.jsx'
 import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
 import MobileNav from './components/MobileNav.jsx'
+import NotifyPrompt from './components/NotifyPrompt.jsx'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './lib/api.js'
 import { TITLE_PATH, titlePath } from './lib/links.js'
@@ -171,6 +172,7 @@ export default function App() {
 </footer>
 <InstallButton />
 <SharePopup />
+<NotifyPrompt />
 <MobileNav active={mobileActive} onSelect={onMobileNav} />
 <MyListDrawer open={listOpen} onClose={closeList} onOpenTitle={item => openItem(item)} />
     </div>
