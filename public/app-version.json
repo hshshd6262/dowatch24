@@ -1,12 +1,11 @@
 {
-  "versionCode": 4,
-  "versionName": "1.0.3",
+  "versionCode": 5,
+  "versionName": "1.0.4",
   "minVersionCode": 4,
+  "size": "5 MB",
   "notes": [
-    "Fixed: the app closed or showed an error right after opening",
-    "Notifications: the app now asks to allow notifications when it opens",
-    "Removed the bell button, notifications are set up automatically",
-    "Updates are now announced inside the app"
-  ],
-  "size": "5 MB"
+    "New animated Dowatch24 loading screen instead of a black screen",
+    "Notifications are asked a little later, not right when the app opens",
+    "Notifications now show the Dowatch24 logo in the status bar"
+  ]
 }

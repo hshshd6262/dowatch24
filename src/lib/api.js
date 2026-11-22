@@ -5,9 +5,14 @@ export const IMG_BASE_LG = 'https://image.tmdb.org/t/p/w780'
 
 async function tmdbFetch(path) {
   const sep = path.includes('?') ? '&' : '?'
-  const res = await fetch(`https://api.themoviedb.org/3${path}${sep}api_key=${TMDB_KEY}`)
-  if (!res.ok) throw new Error(`TMDB error: ${res.status}`)
-  return res.json()
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3${path}${sep}api_key=${TMDB_KEY}`)
+    if (!res.ok) throw new Error(`TMDB error: ${res.status}`)
+    return await res.json()
+  } finally {
+    // First movies have arrived: let the app's loading screen fade out (index.html)
+    setTimeout(() => window.__dwBootDone?.(), 150)
+  }
 }
 
 // Details are fetched once and reused (cards prefetch them on hover / touch)

@@ -137,3 +137,37 @@ export function resumePush() {
   if (!pushSupported() || Notification.permission !== 'granted') return
   register().catch(err => console.warn('Push refresh failed', err))
 }
+
+// Inside the Android app: ask for notifications a little after opening (not instantly).
+// The app hands this request to Android, so the user sees Android's own "Allow notifications?" box.
+// Asks at most once every 2 days while the user hasn't answered; returns a cleanup function.
+export function askPushInApp(delayMs = 20000) {
+  if (!pushSupported() || Notification.permission !== 'default') return () => {}
+  const KEY = 'dw_notify_asked_at'
+  try {
+    const last = Number(localStorage.getItem(KEY) || 0)
+    if (Date.now() - last < 2 * 24 * 60 * 60 * 1000) return () => {}
+  } catch {}
+
+  let done = false
+  const ask = async () => {
+    if (done || Notification.permission !== 'default') return
+    done = true
+    cleanup()
+    try { localStorage.setItem(KEY, String(Date.now())) } catch {}
+    const started = Date.now()
+    const result = await enablePush().catch(() => Notification.permission)
+    // Answered "default" instantly = the box wasn't allowed to show without a tap: ask on the next tap
+    if (result === 'default' && Date.now() - started < 400) {
+      const onTap = () => { window.removeEventListener('pointerup', onTap, true); enablePush().catch(() => {}) }
+      window.addEventListener('pointerup', onTap, true)
+    }
+  }
+  const timer = setTimeout(ask, delayMs)
+  window.addEventListener('dw:ask-notify', ask)          // saved something to My List
+  function cleanup() {
+    clearTimeout(timer)
+    window.removeEventListener('dw:ask-notify', ask)
+  }
+  return cleanup
+}

@@ -7,7 +7,7 @@ import MyListDrawer, { MyListButton } from './components/MyListDrawer.jsx'
 import MobileNav from './components/MobileNav.jsx'
 import UpdateNotice from './components/UpdateNotice.jsx'
 import InstallApp from './components/InstallApp.jsx'
-import { platform, resumePush } from './lib/push.js'
+import { askPushInApp, platform, resumePush } from './lib/push.js'
 
 // Notifications only live inside the Android app; the website shows Install App instead
 const IN_APP = platform() === 'android-app'
@@ -55,14 +55,15 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Inside the app: Android already asked "Allow notifications?" on launch.
-  // If allowed, register this phone for pushes (no bell or card needed).
+  // Inside the app: Android's "Allow notifications?" box shows ~20 s after opening.
+  // Once allowed, this phone is registered for pushes (no bell or card needed).
   useEffect(() => {
     if (!IN_APP) return
     resumePush()
+    const stopAsking = askPushInApp(20000)
     const onShow = () => document.visibilityState === 'visible' && resumePush()
     document.addEventListener('visibilitychange', onShow)
-    return () => document.removeEventListener('visibilitychange', onShow)
+    return () => { stopAsking(); document.removeEventListener('visibilitychange', onShow) }
   }, [])
 
   // Opening a shared link like /movie/123 opens that title
