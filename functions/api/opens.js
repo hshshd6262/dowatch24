@@ -5,11 +5,14 @@
 //   daily/{YYYY-MM-DD}/oc/{country}   opens by country
 //   daily/{YYYY-MM-DD}/uc/{country}   people by country
 // The app remembers the day the server last gave it ("lastDay"), so a person is counted once a day.
-import { DATABASE_URL, getAccessToken } from '../../server/google.js'
+import { DATABASE_URL, db, getAccessToken } from '../../server/google.js'
 import { PLATFORMS } from './installs.js'
 
 const NEPAL_OFFSET = 5.75 * 60 * 60 * 1000
 export const nepalDay = (t = Date.now()) => new Date(t + NEPAL_OFFSET).toISOString().slice(0, 10)
+const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000)
+// Return rate: "day N" after install that we count (and the 7-day "came back at least once")
+const RETURN_DAYS = new Set([1, 2, 3, 4, 5, 6, 7, 14, 30])
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -36,6 +39,24 @@ export async function onRequestPost({ request, env }) {
   }
   try {
     const auth = await getAccessToken(env)
+    // Return rate (retention): first open of the day, N days after this phone installed the app
+    //   cohort/{installDay}/d{N}  phones that opened on day N
+    //   cohort/{installDay}/w7    phones that came back at least once within 7 days
+    //   retentionDays/{day}       days on which this was being recorded
+    if (firstToday) {
+      update[`retentionDays/${day}`] = true
+      const key = `installs/${platform}_${deviceId}`
+      const inst = await db(auth, key).catch(() => null)
+      if (inst?.at) {
+        const installDay = nepalDay(inst.at)
+        const n = daysBetween(installDay, day)
+        if (RETURN_DAYS.has(n)) update[`cohort/${installDay}/d${n}`] = plusOne
+        if (n >= 1 && n <= 7 && !inst.r7) {
+          update[`cohort/${installDay}/w7`] = plusOne
+          update[`${key}/r7`] = true
+        }
+      }
+    }
     const res = await fetch(`${DATABASE_URL}/.json?access_token=${auth.token}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

@@ -47,3 +47,36 @@ export function reportOpen() {
     .then(data => { if (data?.day) localStorage.setItem('dw_open_day', data.day) })
     .catch(() => {})
 }
+
+// Time on screen in the installed app: counts only while the app is visible,
+// sent when it goes to the background (and every 5 minutes during long sessions)
+export function trackTime() {
+  const kind = KIND[platform()]
+  if (!kind) return
+  const id = deviceId()
+  if (!id) return
+  let visibleSince = document.visibilityState === 'visible' ? Date.now() : null
+  let pending = 0
+
+  const send = () => {
+    if (visibleSince) {
+      pending += Date.now() - visibleSince
+      visibleSince = document.visibilityState === 'visible' ? Date.now() : null
+    }
+    const seconds = Math.round(pending / 1000)
+    if (seconds < 3) return
+    pending = 0
+    const body = JSON.stringify({ deviceId: id, platform: kind, seconds: Math.min(seconds, 4 * 60 * 60) })
+    try {
+      if (navigator.sendBeacon?.('/api/session', new Blob([body], { type: 'application/json' }))) return
+    } catch {}
+    fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {})
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') send()
+    else visibleSince = Date.now()
+  })
+  window.addEventListener('pagehide', send)
+  setInterval(() => { if (document.visibilityState === 'visible') send() }, 5 * 60 * 1000)
+}

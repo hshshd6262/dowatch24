@@ -1,69 +1,42 @@
-// GET /stats: private page with installs, app opens, notifications and where people are from.
+// GET /stats: private Dowatch24 dashboard, split into tabs.
 // Password = the ADMIN_KEY secret in Cloudflare Pages → Settings → Variables and Secrets.
-// ?key=…&r=today|7d|30d|1y|all|custom&from=YYYY-MM-DD&to=YYYY-MM-DD (days in Nepal time)
+// ?key=…&tab=overview|installs|usage|retention|notifications|locations|forecast
+//  &r=today|7d|30d|1y|all|custom&from=YYYY-MM-DD&to=YYYY-MM-DD   (days in Nepal time)
 import { DATABASE_URL, db, getAccessToken } from '../server/google.js'
+import { barChart, countryName, empty, esc, flag, fmt, fmt1, forecastChart, page, pct, rankTable, tile } from '../server/stats-ui.js'
 
 const DAY = 24 * 60 * 60 * 1000
 const NEPAL_OFFSET = 5.75 * 60 * 60 * 1000
 const PLATFORMS = { android: 'Android app', ios: 'iPhone app', desktop: 'Computer app' }
 const PUSH_PLATFORMS = { 'android-app': 'Android app', 'ios-app': 'iPhone app', installed: 'Computer app', browser: 'Website' }
 const RANGES = { today: 'Today', '7d': '7 days', '30d': '30 days', '1y': '1 year', all: 'All time' }
+const TABS = { overview: 'Overview', installs: 'Installs', usage: 'Usage', retention: 'Return rate', notifications: 'Notifications', locations: 'Locations', forecast: 'Forecast' }
+const RETURN_DAYS = [1, 3, 7, 14, 30]
+const Z90 = 1.645   // 90% likely range
 
-const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))
-const fmt = n => Number(n || 0).toLocaleString('en')
 const dayKey = t => new Date(t + NEPAL_OFFSET).toISOString().slice(0, 10)
 const dayStart = key => Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10)) - NEPAL_OFFSET
 const isDay = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') && !Number.isNaN(dayStart(v))
-const flag = cc => (/^[A-Z]{2}$/.test(cc) && cc !== 'XX' ? String.fromCodePoint(...[...cc].map(ch => 0x1f1a5 + ch.charCodeAt(0))) : '🌐')
-let regionNames = null
-try { regionNames = new Intl.DisplayNames(['en'], { type: 'region' }) } catch {}
-const countryName = cc => {
-  if (!cc || cc === 'XX') return 'Unknown'
-  if (cc === 'T1') return 'Tor network'
-  try { return regionNames?.of(cc) || cc } catch { return cc }
+const daysBetween = (a, b) => Math.round((dayStart(b) - dayStart(a)) / DAY)
+const addDays = (key, n) => dayKey(dayStart(key) + n * DAY)
+const sumObj = o => Object.values(o || {}).reduce((a, b) => a + (Number(b) || 0), 0)
+const addInto = (target, src) => { for (const [k, v] of Object.entries(src || {})) target[k] = (target[k] || 0) + (Number(v) || 0) }
+const monthName = d => new Date(dayStart(d) + NEPAL_OFFSET).toLocaleString('en', { month: 'short', timeZone: 'UTC' })
+const shortDay = d => `${monthName(d)} ${+d.slice(8, 10)}`
+const minutes = sec => (sec >= 60 * 60 ? `${fmt1(sec / 3600)} h` : `${fmt1(sec / 60)} min`)
+
+// Likely range for a share (Wilson interval): k out of n
+function wilson(k, n, z = Z90) {
+  if (!n) return null
+  const p = Math.min(1, k / n)
+  const d = 1 + (z * z) / n
+  const c = (p + (z * z) / (2 * n)) / d
+  const h = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d
+  return { p, lo: Math.max(0, c - h), hi: Math.min(1, c + h), n }
 }
 
-const STYLE = `
-:root{color-scheme:dark;--bg:#050505;--card:#111;--line:#222;--ink:#f2f2f2;--ink2:#a8a8a8;--ink3:#7a7a7a;--red:#e50914;--bar:#e50914}
-*{box-sizing:border-box}body{margin:0;padding:24px 16px 48px;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:860px;margin:0 auto}h1{margin:0;font-size:24px}h1 b{color:var(--red)}
-h2{margin:30px 0 10px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
-.sub{color:var(--ink3);margin:2px 0 18px;font-size:13px}
-.range{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px;background:#0b0b0b}
-.range a{padding:7px 12px;border-radius:999px;border:1px solid #2a2a2a;color:var(--ink2);text-decoration:none;font-size:13px;font-weight:600}
-.range a.on{background:var(--red);border-color:var(--red);color:#fff}
-.range form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto;font-size:13px;color:var(--ink3)}
-.range input[type=date]{padding:6px 8px;border-radius:8px;border:1px solid #333;background:#151515;color:var(--ink);font:inherit}
-.range button{padding:7px 12px;border:0;border-radius:8px;background:#2a2a2a;color:#fff;font:inherit;font-weight:700;cursor:pointer}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.tile{padding:14px 16px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
-.tile.hero{background:linear-gradient(135deg,#2a0507,#120203);border-color:#3a0a0d}
-.tile .n{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
-.tile .l{color:var(--ink2);font-size:13px}.tile .s{color:var(--ink3);font-size:12px;margin-top:2px}
-.chart{position:relative;margin-top:10px;padding:14px 14px 6px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
-.chart svg{display:block;width:100%;height:auto;overflow:visible}
-.chart .cap{display:flex;justify-content:space-between;color:var(--ink3);font-size:12px;margin-bottom:6px}
-.bar{fill:var(--bar);pointer-events:none}.hit{fill:transparent;cursor:default}.hit:hover+.bar,.bar.hov{fill:#ff4d57}
-.axis{stroke:#333;stroke-width:1}.tick{fill:var(--ink3);font-size:11px}
-.tip{position:absolute;pointer-events:none;padding:7px 10px;border-radius:8px;background:#1e1e1e;border:1px solid #333;font-size:12px;line-height:1.4;white-space:nowrap;opacity:0;transform:translate(-50%,-100%);transition:opacity .1s}
-.tip b{display:block;color:var(--ink)}.tip span{color:var(--ink2)}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #1b1b1b;font-size:13.5px}
-th{color:var(--ink3);font-weight:600;font-size:12px}td.num,th.num{text-align:right}
-tr:last-child td{border-bottom:0}.meter{height:4px;margin-top:4px;border-radius:2px;background:var(--bar);opacity:.85}
-.empty{color:var(--ink3);font-size:13px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
-.note{color:var(--ink3);font-size:12px;margin-top:8px}
-@media(max-width:640px){.cols{grid-template-columns:1fr}.range form{margin-left:0}.tick{font-size:24px}}
-`
-
-const page = (body, status = 200) => new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
-<title>Dowatch24 stats</title><style>${STYLE}</style></head><body><main>${body}</main></body></html>`,
-{ status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } })
-
 // Password box (typing it avoids problems with #, &, + or spaces in a web address)
-const loginForm = message => page(`<h1>Dowatch<b>24</b> stats</h1>
+const loginForm = message => page(`<h1 style="margin-top:24px">Dowatch<b>24</b> stats</h1>
 <p class="sub">${message}</p>
 <form method="get" action="/stats" style="display:flex;gap:8px;max-width:420px">
 <input name="key" type="password" placeholder="ADMIN_KEY password" autofocus required
@@ -71,59 +44,11 @@ const loginForm = message => page(`<h1>Dowatch<b>24</b> stats</h1>
 <button style="padding:12px 18px;border:0;border-radius:10px;background:#e50914;color:#fff;font:inherit;font-weight:700">Open</button>
 </form>`, 403)
 
-// Daily counters for a range of days (keys are YYYY-MM-DD)
-async function dailyRange(auth, from, to) {
-  const q = new URLSearchParams({ orderBy: '"$key"', startAt: `"${from}"`, endAt: `"${to}"`, access_token: auth.token })
-  const res = await fetch(`${DATABASE_URL}/daily.json?${q}`)
-  if (!res.ok) throw new Error(`Database read failed: ${res.status}`)
+async function getJson(auth, path, query = {}) {
+  const q = new URLSearchParams({ ...query, access_token: auth.token })
+  const res = await fetch(`${DATABASE_URL}/${path}.json?${q}`)
+  if (!res.ok) throw new Error(`Database read failed (${path}): ${res.status}`)
   return (await res.json()) || {}
-}
-
-const sumObj = o => Object.values(o || {}).reduce((a, b) => a + (Number(b) || 0), 0)
-const addInto = (target, src) => { for (const [k, v] of Object.entries(src || {})) target[k] = (target[k] || 0) + (Number(v) || 0) }
-
-// Ranked table with a small magnitude bar per row
-function rankTable(title, rows, unit) {
-  if (!rows.length) return `<div><h2>${title}</h2><div class="empty">No data in this period yet.</div></div>`
-  const max = Math.max(...rows.map(r => r.n))
-  const total = rows.reduce((a, r) => a + r.n, 0)
-  return `<div><h2>${title}</h2><table><thead><tr><th></th><th class="num">${unit}</th><th class="num">Share</th></tr></thead><tbody>
-${rows.slice(0, 12).map(r => `<tr><td>${r.label}<div class="meter" style="width:${Math.max(3, (r.n / max) * 100).toFixed(1)}%"></div></td>
-<td class="num">${fmt(r.n)}</td><td class="num">${Math.round((r.n / total) * 100)}%</td></tr>`).join('')}
-</tbody></table>${rows.length > 12 ? `<p class="note">+ ${rows.length - 12} more</p>` : ''}</div>`
-}
-
-// Bar chart of opens over time (one series, so no legend; hover shows the numbers)
-function opensChart(buckets, unitLabel) {
-  const W = 800, H = 200, padB = 22, padT = 8
-  const n = buckets.length
-  const max = Math.max(1, ...buckets.map(b => b.opens))
-  const slot = W / n
-  const gap = n > 60 ? 1 : 2
-  const bw = Math.min(48, Math.max(1, slot - gap))   // short ranges: keep bars slim
-  const r = Math.min(4, bw / 2)
-  const y = v => padT + (H - padB - padT) * (1 - v / max)
-  const base = H - padB
-  const bars = buckets.map((b, i) => {
-    const x = i * slot + (slot - bw) / 2
-    const top = y(b.opens)
-    const h = base - top
-    const shape = h <= 0 ? '' : h < r
-      ? `<rect class="bar" x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}"/>`
-      : `<path class="bar" d="M${x.toFixed(1)},${base}V${(top + r).toFixed(1)}q0,-${r} ${r},-${r}h${(bw - 2 * r).toFixed(1)}q${r},0 ${r},${r}V${base}Z"/>`
-    return `<g><rect class="hit" x="${(i * slot).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${H}" data-l="${esc(b.label)}" data-o="${b.opens}" data-u="${b.users}"/>${shape}</g>`
-  }).join('')
-  const ticks = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i)
-    .map(i => `<text class="tick" x="${(i * slot + slot / 2).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(buckets[i].short)}</text>`).join('')
-  return `<div class="chart"><div class="cap"><span>App opens ${unitLabel}</span><span>max ${fmt(max)}</span></div>
-<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="App opens ${unitLabel}">${bars}<line class="axis" x1="0" x2="${W}" y1="${base}" y2="${base}"/>${ticks}</svg>
-<div class="tip" id="tip"></div></div>
-<script>(()=>{const c=document.currentScript.previousElementSibling,t=c.querySelector('#tip'),s=c.querySelector('svg');
-s.addEventListener('pointermove',e=>{const h=e.target.closest('.hit');if(!h){t.style.opacity=0;return}
-c.querySelectorAll('.bar.hov').forEach(b=>b.classList.remove('hov'));const b=h.nextElementSibling;b&&b.classList.add('hov');
-const r=c.getBoundingClientRect();t.innerHTML='<b>'+h.dataset.l+'</b><span>'+Number(h.dataset.o).toLocaleString('en')+' opens · '+Number(h.dataset.u).toLocaleString('en')+' people</span>';
-t.style.left=Math.min(Math.max(e.clientX-r.left,70),r.width-70)+'px';t.style.top=(e.clientY-r.top-10)+'px';t.style.opacity=1});
-s.addEventListener('pointerleave',()=>{t.style.opacity=0;c.querySelectorAll('.bar.hov').forEach(b=>b.classList.remove('hov'))})})()</script>`
 }
 
 export async function onRequestGet({ request, env }) {
@@ -132,6 +57,8 @@ export async function onRequestGet({ request, env }) {
   if (!env.ADMIN_KEY) return page('<h1>Stats are locked</h1><p>Add a secret named <b>ADMIN_KEY</b> in Cloudflare Pages → Settings → Variables and Secrets, redeploy, then open <code>/stats</code>.</p>', 403)
   if (!key) return loginForm('Enter your password to see the stats.')
   if (key !== String(env.ADMIN_KEY).trim()) return loginForm('Wrong password, try again. It must match the ADMIN_KEY secret in Cloudflare Pages exactly (capital letters count).')
+
+  const tab = params.get('tab') in TABS ? params.get('tab') : 'overview'
 
   // ----- Date range (Nepal days) -----
   const today = dayKey(Date.now())
@@ -144,91 +71,113 @@ export async function onRequestGet({ request, env }) {
   } else {
     if (!(r in RANGES)) r = '30d'
     const back = { today: 0, '7d': 6, '30d': 29, '1y': 364, all: null }[r]
-    from = back === null ? '2024-01-01' : dayKey(dayStart(today) - back * DAY)
+    from = back === null ? '2024-01-01' : addDays(today, -back)
   }
+  const last30 = addDays(today, -29)
 
-  let installs = {}, devices = {}, daily = {}, errors = {}
+  // ----- Load -----
+  let installs, devices, daily, errors, cohorts, since
   try {
     const auth = await getAccessToken(env)
-    ;[installs, devices, daily, errors] = await Promise.all([
+    ;[installs, devices, daily, errors, cohorts, since] = await Promise.all([
       db(auth, 'installs').then(v => v || {}),
       db(auth, 'devices').then(v => v || {}),
-      dailyRange(auth, from, to),
-      fetch(`${DATABASE_URL}/notifyErrors.json?${new URLSearchParams({ orderBy: '"$key"', limitToLast: '40', access_token: auth.token })}`)
-        .then(res => (res.ok ? res.json() : null)).then(v => v || {}).catch(() => ({})),
+      getJson(auth, 'daily', { orderBy: '"$key"', startAt: `"${from < last30 ? from : last30}"`, endAt: `"${today}"` }),
+      getJson(auth, 'notifyErrors', { orderBy: '"$key"', limitToLast: '40' }).catch(() => ({})),
+      getJson(auth, 'cohort').catch(() => ({})),
+      getJson(auth, 'retentionDays', { orderBy: '"$key"', limitToFirst: '1' }).then(v => Object.keys(v)[0] || null).catch(() => null),
     ])
   } catch (err) {
     return page(`<h1>Couldn't load stats</h1><p>${esc(err.message || err)}</p>`, 500)
   }
 
-  // "All time" starts at the first day anything was recorded
+  const installList = Object.values(installs).filter(x => x && x.p in PLATFORMS && x.at)
   if (r === 'all') {
-    const firsts = [...Object.values(installs).map(x => x?.at), ...Object.values(devices).map(x => x?.createdAt)].filter(Boolean)
-    const firstDaily = Object.keys(daily).sort()[0]
-    const candidates = [...firsts.map(dayKey), firstDaily].filter(Boolean).sort()
-    from = candidates[0] || today
+    const firsts = [...installList.map(x => x.at), ...Object.values(devices).map(x => x?.createdAt)].filter(Boolean).map(dayKey)
+    from = [...firsts, ...Object.keys(daily)].sort()[0] || today
   }
   const start = dayStart(from), end = dayStart(to) + DAY
   const inRange = t => t >= start && t < end
   const days = []
-  for (let t = start; t < end; t += DAY) days.push(dayKey(t))
+  for (let d = from; d <= to; d = addDays(d, 1)) days.push(d)
 
   // ----- Installs -----
   const inst = { android: 0, ios: 0, desktop: 0 }
-  const instCountry = {}, instCity = {}
-  let instAll = 0
-  for (const x of Object.values(installs)) {
-    if (!x || !(x.p in inst)) continue
-    instAll++
+  const instCountry = {}, instCity = {}, installsByDay = {}
+  for (const x of installList) {
+    const d = dayKey(x.at)
+    installsByDay[d] = (installsByDay[d] || 0) + 1
     if (!inRange(x.at)) continue
     inst[x.p]++
     const cc = x.c || 'XX'
     instCountry[cc] = (instCountry[cc] || 0) + 1
     if (x.city) { const k = `${x.city}|${cc}`; instCity[k] = (instCity[k] || 0) + 1 }
   }
-  const instTotal = sumObj(inst)
+  const instTotal = sumObj(inst), instAll = installList.length
 
-  // ----- Opens -----
-  const opens = { android: 0, ios: 0, desktop: 0 }, people = { android: 0, ios: 0, desktop: 0 }
-  const openCountry = {}, peopleCountry = {}
-  const perDay = days.map(d => {
-    const x = daily[d] || {}
-    addInto(opens, x.o); addInto(people, x.u); addInto(openCountry, x.oc); addInto(peopleCountry, x.uc)
-    return { day: d, opens: sumObj(x.o), users: sumObj(x.u) }
-  })
-  const opensTotal = sumObj(opens)
-  const peopleDays = sumObj(people)
-  const avgDaily = days.length ? peopleDays / days.length : 0
-  const busiest = perDay.reduce((a, b) => (b.users > (a?.users || 0) ? b : a), null)
+  // ----- Usage (opens, people, time) -----
+  const usage = (dayList) => {
+    const o = { android: 0, ios: 0, desktop: 0 }, u = { android: 0, ios: 0, desktop: 0 }, t = { android: 0, ios: 0, desktop: 0 }
+    const oc = {}, uc = {}
+    const perDay = dayList.map(d => {
+      const x = daily[d] || {}
+      addInto(o, x.o); addInto(u, x.u); addInto(t, x.t); addInto(oc, x.oc); addInto(uc, x.uc)
+      const people = sumObj(x.u)
+      return { day: d, opens: sumObj(x.o), people, peopleSum: people, seconds: sumObj(x.t), installs: installsByDay[d] || 0 }
+    })
+    const opens = sumObj(o), peopleDays = sumObj(u), seconds = sumObj(t)
+    return { o, u, t, oc, uc, perDay, opens, peopleDays, seconds,
+      avgPeople: dayList.length ? peopleDays / dayList.length : 0,
+      secPerPerson: peopleDays ? seconds / peopleDays : 0,
+      secPerOpen: opens ? seconds / opens : 0,
+      opensPerPerson: peopleDays ? opens / peopleDays : 0 }
+  }
+  const U = usage(days)
+  const days30 = []; for (let d = last30; d <= today; d = addDays(d, 1)) days30.push(d)
+  const U30 = usage(days30)
+  const busiest = U.perDay.reduce((a, b) => (b.people > (a?.people || 0) ? b : a), null)
 
-  // Chart buckets: days, or weeks / months for long ranges
-  const monthName = d => new Date(dayStart(d) + NEPAL_OFFSET).toLocaleString('en', { month: 'short', timeZone: 'UTC' })
-  const shortDay = d => `${monthName(d)} ${+d.slice(8, 10)}`
-  let buckets, unitLabel
-  if (perDay.length <= 92) {
-    buckets = perDay.map(p => ({ ...p, label: shortDay(p.day) + ', ' + p.day.slice(0, 4), short: shortDay(p.day) }))
-    unitLabel = 'per day'
-  } else if (perDay.length <= 731) {
-    buckets = []
-    for (let i = 0; i < perDay.length; i += 7) {
-      const wk = perDay.slice(i, i + 7)
-      buckets.push({ opens: wk.reduce((a, b) => a + b.opens, 0), users: Math.round(wk.reduce((a, b) => a + b.users, 0) / wk.length),
-        label: `Week of ${shortDay(wk[0].day)}, ${wk[0].day.slice(0, 4)} (people = daily average)`, short: shortDay(wk[0].day) })
+  // Day / week / month buckets for charts
+  function buckets(perDay, pick, lines) {
+    if (perDay.length <= 92) return perDay.map(p => ({ value: pick(p), label: `${shortDay(p.day)}, ${p.day.slice(0, 4)}`, short: shortDay(p.day), lines: lines(p) }))
+    const size = perDay.length <= 731 ? 7 : 30
+    const out = []
+    for (let i = 0; i < perDay.length; i += size) {
+      const g = perDay.slice(i, i + size)
+      const sum = { day: g[0].day, opens: 0, people: 0, peopleSum: 0, seconds: 0, installs: 0 }
+      for (const p of g) { sum.opens += p.opens; sum.peopleSum += p.people; sum.seconds += p.seconds; sum.installs += p.installs }
+      sum.people = Math.round(sum.peopleSum / g.length)   // daily average
+      out.push({ value: pick(sum), label: `${size === 7 ? 'Week' : 'Month'} of ${shortDay(g[0].day)}, ${g[0].day.slice(0, 4)}`, short: shortDay(g[0].day), lines: lines(sum) })
     }
-    unitLabel = 'per week'
-  } else {
-    const byMonth = new Map()
-    for (const p of perDay) {
-      const m = p.day.slice(0, 7)
-      if (!byMonth.has(m)) byMonth.set(m, { opens: 0, users: 0, n: 0, first: p.day })
-      const b = byMonth.get(m); b.opens += p.opens; b.users += p.users; b.n++
+    return out
+  }
+  const unit = days.length <= 92 ? 'per day' : days.length <= 731 ? 'per week' : 'per month'
+
+  // ----- Return rate (retention), for phones installed in the range -----
+  const sizeByDay = installsByDay
+  const retention = {}
+  let w7 = { back: 0, size: 0 }
+  const cohortRows = []
+  if (since) {
+    for (const n of RETURN_DAYS) {
+      let back = 0, size = 0
+      for (const [d, c] of Object.entries(cohorts)) {
+        if (d < since || d < from || d > to || daysBetween(d, today) <= n) continue
+        back += Number(c?.[`d${n}`]) || 0
+        size += sizeByDay[d] || 0
+      }
+      retention[n] = { back, size, w: wilson(back, size) }
     }
-    buckets = [...byMonth.values()].map(b => ({ opens: b.opens, users: Math.round(b.users / b.n),
-      label: `${monthName(b.first)} ${b.first.slice(0, 4)} (people = daily average)`, short: `${monthName(b.first)} ${b.first.slice(2, 4)}` }))
-    unitLabel = 'per month'
+    for (const d of Object.keys(sizeByDay)) {
+      if (d < since || d < from || d > to || daysBetween(d, today) <= 7) continue
+      w7.back += Number(cohorts[d]?.w7) || 0
+      w7.size += sizeByDay[d]
+    }
+    const cohortDays = Object.keys(sizeByDay).filter(d => d >= since && d >= from && d <= to).sort().reverse().slice(0, 21)
+    for (const d of cohortDays) cohortRows.push({ day: d, size: sizeByDay[d], c: cohorts[d] || {}, age: daysBetween(d, today) })
   }
 
-  // ----- Notifications allowed -----
+  // ----- Notifications -----
   const push = { 'android-app': 0, 'ios-app': 0, installed: 0, browser: 0 }
   let pushAll = 0
   for (const x of Object.values(devices)) {
@@ -237,81 +186,210 @@ export async function onRequestGet({ request, env }) {
     if (inRange(x.createdAt)) push[x.platform in push ? x.platform : 'browser']++
   }
   const pushTotal = sumObj(push)
-
-  // ----- Notification check-up -----
-  // Status of the people opening the app (each person once a day), and the card's steps
-  const perm = { granted: 0, denied: 0, default: 0, unsupported: 0 }
-  const steps = {}
-  for (const d of days) {
-    const x = daily[d] || {}
-    for (const st of Object.keys(perm)) perm[st] += sumObj(x.perm?.[st])
-    for (const [ev, byPlatform] of Object.entries(x.n || {})) steps[ev] = (steps[ev] || 0) + sumObj(byPlatform)
+  const permOf = dayList => {
+    const perm = { granted: 0, denied: 0, default: 0, unsupported: 0 }, steps = {}
+    for (const d of dayList) {
+      const x = daily[d] || {}
+      for (const st of Object.keys(perm)) perm[st] += sumObj(x.perm?.[st])
+      for (const [ev, byP] of Object.entries(x.n || {})) steps[ev] = (steps[ev] || 0) + sumObj(byP)
+    }
+    return { perm, steps, total: sumObj(perm) }
   }
-  const permTotal = sumObj(perm)
-  const pct = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '–')
+  const P = permOf(days), P30 = permOf(days30)
   const recentErrors = Object.values(errors).filter(e => e && inRange(e.at)).sort((a, b) => b.at - a.at).slice(0, 15)
-  const when = t => new Date(t + NEPAL_OFFSET).toISOString().slice(0, 16).replace('T', ' ')
-  const PERM_LABELS = { granted: ['Allowed', 'notifications on'], denied: ['Blocked', 'said no / turned off'], default: ['Not decided yet', 'not asked or no answer'], unsupported: ['Not possible', 'phone/browser can’t do notifications'] }
-  const STEP_LABELS = [['shown', 'Card shown'], ['tap', 'Tapped “Turn on”'], ['allowed', 'Allowed'], ['saved', 'Signed up (saved)'], ['later', 'Tapped “Not now”'], ['denied', 'Chose “Don’t allow”'], ['closed', 'Closed the Allow box'], ['failed', 'Sign-up failed (error)']]
-  const checkup = `
-<h2>Notification check-up</h2>
-${permTotal ? `<div class="tiles">${Object.entries(PERM_LABELS).map(([k, [name, hint]]) => `<div class="tile${k === 'granted' ? ' hero' : ''}"><div class="n">${pct(perm[k], permTotal)}</div><div class="l">${name}</div><div class="s">${fmt(perm[k])} · ${hint}</div></div>`).join('')}</div>
-<p class="note">Notification status of the people who opened the app in this period (each person once a day).</p>`
-  : '<div class="empty">No data yet: this starts counting with this update, the next time people open the app.</div>'}
-<table style="margin-top:12px"><thead><tr><th>Step (the 10-second card)</th><th class="num">Count</th></tr></thead><tbody>
-${STEP_LABELS.map(([k, name]) => `<tr><td>${name}</td><td class="num">${fmt(steps[k] || 0)}</td></tr>`).join('')}
-</tbody></table>
-${recentErrors.length ? `<h2>Latest sign-up errors</h2><table><thead><tr><th>When</th><th>Where</th><th>Error</th></tr></thead><tbody>
-${recentErrors.map(e => `<tr><td style="white-space:nowrap">${esc(when(e.at))}</td><td>${esc(PLATFORMS[e.p] || e.p)} ${flag(e.c || 'XX')}</td><td>${esc(e.m)}<div class="s" style="color:var(--ink3);font-size:11px">${esc(e.ua)}</div></td></tr>`).join('')}
-</tbody></table>` : ''}`
 
-  // ----- Page -----
+  // ----- Page shell -----
   const k = encodeURIComponent(key)
+  const rangeQ = r === 'custom' ? `r=custom&from=${from}&to=${to}` : `r=${r}`
+  const href = (t, q = rangeQ) => `/stats?key=${k}&tab=${t}&${q}`
   const label = r === 'custom' ? `${from} → ${to}` : RANGES[r]
-  const rangeLinks = Object.entries(RANGES).map(([id, name]) => `<a href="/stats?key=${k}&r=${id}" class="${r === id ? 'on' : ''}">${name}</a>`).join('')
-  const countryRows = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([cc, n]) => ({ label: `${flag(cc)} ${esc(countryName(cc))}`, n }))
-  const cityRows = Object.entries(instCity).sort((a, b) => b[1] - a[1]).map(([kk, n]) => { const [city, cc] = kk.split('|'); return { label: `${flag(cc)} ${esc(city)}`, n } })
-
-  return page(`
-<h1>Dowatch<b>24</b> stats</h1>
-<p class="sub">${esc(label)} · ${esc(from)} to ${esc(to)} · days in Nepal time</p>
-
-<div class="range">${rangeLinks}
-<form method="get" action="/stats"><input type="hidden" name="key" value="${esc(key)}"><input type="hidden" name="r" value="custom">
+  const header = `<div class="top"><div class="top-in"><h1>Dowatch<b>24</b> stats</h1>
+<p class="sub">${esc(label)} · ${esc(from)} to ${esc(to)} · Nepal time</p>
+<nav class="tabs">${Object.entries(TABS).map(([id, name]) => `<a href="${href(id)}" class="${tab === id ? 'on' : ''}">${name}</a>`).join('')}</nav></div></div>`
+  const rangeBar = `<div class="range">${Object.entries(RANGES).map(([id, name]) => `<a href="${href(tab, `r=${id}`)}" class="${r === id ? 'on' : ''}">${name}</a>`).join('')}
+<form method="get" action="/stats"><input type="hidden" name="key" value="${esc(key)}"><input type="hidden" name="tab" value="${tab}"><input type="hidden" name="r" value="custom">
 <input type="date" name="from" value="${esc(from)}" max="${today}" aria-label="From"> to <input type="date" name="to" value="${esc(to)}" max="${today}" aria-label="To">
-<button>Show</button></form></div>
+<button>Show</button></form></div>`
+  const retTile = n => retention[n]?.size ? pct(retention[n].back, retention[n].size) : '–'
+  const countryRows = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([cc, n]) => ({ label: `${flag(cc)} ${esc(countryName(cc))}`, n }))
+  const opensChart = () => U.opens
+    ? barChart(buckets(U.perDay, p => p.opens, p => [`${fmt(p.opens)} opens`, `${fmt(p.people)} people${unit === 'per day' ? '' : ' per day (avg)'}`]), `App opens ${unit}`)
+    : empty('No app opens in this period yet.')
 
-<h2>Installs</h2>
-<div class="tiles">
-<div class="tile hero"><div class="n">${fmt(instTotal)}</div><div class="l">new installs</div><div class="s">${fmt(instAll)} all time</div></div>
-${Object.entries(PLATFORMS).map(([p, name]) => `<div class="tile"><div class="n">${fmt(inst[p])}</div><div class="l">${name}</div></div>`).join('')}
-</div>
+  let body = ''
 
-<h2>App opens</h2>
-<div class="tiles">
-<div class="tile hero"><div class="n">${fmt(opensTotal)}</div><div class="l">times the app was opened</div></div>
-<div class="tile"><div class="n">${fmt(Math.round(avgDaily))}</div><div class="l">people per day (average)</div>${busiest && busiest.users ? `<div class="s">busiest: ${fmt(busiest.users)} on ${esc(busiest.day)}</div>` : ''}</div>
-${Object.entries(PLATFORMS).map(([p, name]) => `<div class="tile"><div class="n">${fmt(opens[p])}</div><div class="l">${name} opens</div></div>`).join('')}
+  if (tab === 'overview') {
+    body = `${rangeBar}
+<h2>At a glance</h2><div class="tiles">
+${tile(fmt(instTotal), 'new installs', `${fmt(instAll)} all time`, { hero: true, href: href('installs') })}
+${tile(fmt(Math.round(U.avgPeople)), 'people per day', 'average, opened the app', { href: href('usage') })}
+${tile(U.seconds ? minutes(U.secPerPerson) : '–', 'time per person per day', 'average time in the app', { href: href('usage') })}
+${tile(retTile(1), 'come back on day 1', retention[1]?.size ? `of ${fmt(retention[1].size)} installs` : 'needs a few days of data', { href: href('retention') })}
+${tile(retTile(7), 'come back on day 7', retention[7]?.size ? `of ${fmt(retention[7].size)} installs` : 'needs a week of data', { href: href('retention') })}
+${tile(P.total ? pct(P.perm.granted, P.total) : '–', 'have notifications on', 'of people opening the app', { href: href('notifications') })}
 </div>
-${opensTotal ? opensChart(buckets, unitLabel) : '<div class="empty" style="margin-top:10px">No app opens in this period yet. Opens are counted from the day this update went live.</div>'}
+<h2>App opens</h2>${opensChart()}
+<p class="note">Tap a box to open its tab. Use <b>Forecast</b> to see what 100k installs would look like.</p>`
+  }
 
-<h2>Notifications allowed</h2>
-<div class="tiles">
-<div class="tile hero"><div class="n">${fmt(pushTotal)}</div><div class="l">turned notifications on</div><div class="s">${fmt(pushAll)} all time</div></div>
-${Object.entries(PUSH_PLATFORMS).map(([p, name]) => `<div class="tile"><div class="n">${fmt(push[p])}</div><div class="l">${name}</div></div>`).join('')}
+  if (tab === 'installs') {
+    body = `${rangeBar}
+<h2>Installs</h2><div class="tiles">
+${tile(fmt(instTotal), 'new installs', `${fmt(instAll)} all time`, { hero: true })}
+${Object.entries(PLATFORMS).map(([p, name]) => tile(fmt(inst[p]), name, pct(inst[p], instTotal) + ' of installs')).join('')}
 </div>
+<h2>Installs ${unit}</h2>${instTotal ? barChart(buckets(U.perDay, p => p.installs, p => [`${fmt(p.installs)} installs`]), `Installs ${unit}`) : empty('No installs in this period.')}
+<p class="note">An install = the first time the app is opened on a device (counted once per device).</p>`
+  }
 
-${checkup}
+  if (tab === 'usage') {
+    body = `${rangeBar}
+<h2>How much people use the app</h2><div class="tiles">
+${tile(fmt(U.opens), 'times the app was opened', '', { hero: true })}
+${tile(fmt(Math.round(U.avgPeople)), 'people per day (average)', busiest?.people ? `busiest: ${fmt(busiest.people)} on ${esc(busiest.day)}` : '')}
+${tile(U.seconds ? minutes(U.secPerPerson) : '–', 'time per person per day', 'average time on screen')}
+${tile(U.seconds ? minutes(U.secPerOpen) : '–', 'time per visit', 'average, each time it’s opened')}
+${tile(U.peopleDays ? fmt1(U.opensPerPerson) : '–', 'opens per person per day', '')}
+${tile(U.seconds ? minutes(U.seconds) : '–', 'total time in the app', 'everyone together')}
+</div>
+<h2>App opens ${unit}</h2>${opensChart()}
+<h2>Time in the app ${unit}</h2>${U.seconds ? barChart(buckets(U.perDay, p => Math.round(p.seconds / 60), p => [`${minutes(p.seconds)} total`, p.peopleSum ? `${minutes(p.seconds / p.peopleSum)} per person per day` : '']), `Minutes in the app ${unit}`, v => `${fmt(v)} min`) : empty('Time in the app starts counting with this update.')}
+<h2>By platform</h2><div class="tbl"><table><thead><tr><th></th><th class="num">Opens</th><th class="num">People (sum of days)</th><th class="num">Time</th><th class="num">Time / person / day</th></tr></thead><tbody>
+${Object.entries(PLATFORMS).map(([p, name]) => `<tr><td>${name}</td><td class="num">${fmt(U.o[p])}</td><td class="num">${fmt(U.u[p])}</td><td class="num">${U.t[p] ? minutes(U.t[p]) : '–'}</td><td class="num">${U.t[p] && U.u[p] ? minutes(U.t[p] / U.u[p]) : '–'}</td></tr>`).join('')}
+</tbody></table></div>
+<p class="note">Time counts only while the app is on screen. People = devices that opened the app that day.</p>`
+  }
 
-<div class="cols">
-${rankTable('Installs by country', countryRows(instCountry), 'Installs')}
-${rankTable('App opens by country', countryRows(openCountry), 'Opens')}
+  if (tab === 'retention') {
+    const cell = (row, n) => {
+      if (row.age <= n) return '<td class="heat" style="color:var(--ink3)">…</td>'
+      const v = Number(row.c[`d${n}`]) || 0
+      const share = row.size ? v / row.size : 0
+      return `<td class="heat" style="background:rgba(229,9,20,${(0.08 + share * 0.7).toFixed(2)})" title="${v} of ${row.size}">${pct(v, row.size)}</td>`
+    }
+    body = `${rangeBar}
+${!since ? empty('Return rate starts counting with this update. The first numbers (day 1) show up the day after people install.') : `
+<h2>Of the people who installed, how many came back</h2><div class="tiles">
+${RETURN_DAYS.map(n => tile(retTile(n), `come back on day ${n}`, retention[n]?.size ? `${fmt(retention[n].back)} of ${fmt(retention[n].size)} installs${retention[n].w ? ` · likely ${pct(retention[n].w.lo * 100, 100)}–${pct(retention[n].w.hi * 100, 100)}` : ''}` : 'not enough days yet', { hero: n === 1 })).join('')}
+${tile(w7.size ? pct(w7.back, w7.size) : '–', 'came back within 7 days', w7.size ? `at least once, ${fmt(w7.back)} of ${fmt(w7.size)}` : 'needs a week of data')}
 </div>
-<div class="cols">
-${rankTable('Installs by city', cityRows, 'Installs')}
-${rankTable('People by country (daily)', countryRows(peopleCountry), 'Person-days')}
+<h2>By install day</h2>
+${cohortRows.length ? `<div class="tbl"><table><thead><tr><th>Installed on</th><th class="num">Installs</th>${RETURN_DAYS.map(n => `<th style="text-align:center">Day ${n}</th>`).join('')}<th style="text-align:center">Within 7 days</th></tr></thead><tbody>
+${cohortRows.map(row => `<tr><td>${esc(row.day)}</td><td class="num">${fmt(row.size)}</td>${RETURN_DAYS.map(n => cell(row, n)).join('')}${row.age <= 7 ? '<td class="heat" style="color:var(--ink3)">…</td>' : `<td class="heat" style="background:rgba(229,9,20,${(0.08 + ((Number(row.c.w7) || 0) / row.size) * 0.7).toFixed(2)})">${pct(Number(row.c.w7) || 0, row.size)}</td>`}</tr>`).join('')}
+</tbody></table></div>` : empty('No installs in this period since return-rate tracking started.')}`}
+<p class="note">Day N = the share of phones that opened the app exactly N days after installing (day 1 = the next day).
+“…” = that day hasn’t finished yet. Counted from ${since ? esc(since) : 'this update'}; earlier installs aren’t included.</p>`
+  }
+
+  if (tab === 'notifications') {
+    const PERM_LABELS = { granted: ['Allowed', 'notifications on'], denied: ['Blocked', 'said no / turned off'], default: ['Not decided yet', 'not asked or no answer'], unsupported: ['Not possible', 'phone/browser can’t do notifications'] }
+    const STEP_LABELS = [['shown', 'Card shown'], ['tap', 'Tapped “Turn on”'], ['allowed', 'Allowed'], ['saved', 'Signed up (saved)'], ['later', 'Tapped “Not now”'], ['denied', 'Chose “Don’t allow”'], ['closed', 'Closed the Allow box'], ['failed', 'Sign-up failed (error)']]
+    const when = t => new Date(t + NEPAL_OFFSET).toISOString().slice(0, 16).replace('T', ' ')
+    body = `${rangeBar}
+<h2>Notifications turned on</h2><div class="tiles">
+${tile(fmt(pushTotal), 'phones signed up', `${fmt(pushAll)} all time`, { hero: true })}
+${Object.entries(PUSH_PLATFORMS).map(([p, name]) => tile(fmt(push[p]), name)).join('')}
 </div>
-<p class="note">Installs = first open of the app on a device (counted once). Opens = every launch. People = devices that opened the app that day.
-Country/city come from Cloudflare and start with this update; earlier installs show as Unknown.</p>
-`)
+<h2>Status of people opening the app</h2>
+${P.total ? `<div class="tiles">${Object.entries(PERM_LABELS).map(([s, [name, hint]]) => tile(pct(P.perm[s], P.total), name, `${fmt(P.perm[s])} · ${hint}`, { hero: s === 'granted' })).join('')}</div>` : empty('No data yet for this period.')}
+<h2>The notification card, step by step</h2>
+<div class="tbl"><table><thead><tr><th>Step</th><th class="num">Count</th></tr></thead><tbody>
+${STEP_LABELS.map(([s, name]) => `<tr><td>${name}</td><td class="num">${fmt(P.steps[s] || 0)}</td></tr>`).join('')}
+</tbody></table></div>
+${recentErrors.length ? `<h2>Latest sign-up errors</h2><div class="tbl"><table><thead><tr><th>When</th><th>Where</th><th>Error</th></tr></thead><tbody>
+${recentErrors.map(e => `<tr><td style="white-space:nowrap">${esc(when(e.at))}</td><td>${esc(PLATFORMS[e.p] || e.p)} ${flag(e.c || 'XX')}</td><td>${esc(e.m)}<div style="color:var(--ink3);font-size:11px">${esc(e.ua)}</div></td></tr>`).join('')}
+</tbody></table></div>` : ''}`
+  }
+
+  if (tab === 'locations') {
+    const cityRows = Object.entries(instCity).sort((a, b) => b[1] - a[1]).map(([kk, n]) => { const [city, cc] = kk.split('|'); return { label: `${flag(cc)} ${esc(city)}`, n } })
+    body = `${rangeBar}
+<div class="cols">${rankTable('Installs by country', countryRows(instCountry), 'Installs')}${rankTable('App opens by country', countryRows(U.oc), 'Opens')}</div>
+<div class="cols">${rankTable('Installs by city', cityRows, 'Installs')}${rankTable('People by country', countryRows(U.uc), 'Person-days')}</div>
+<p class="note">Country and city come from Cloudflare. Installs from before location tracking show as Unknown.</p>`
+  }
+
+  if (tab === 'forecast') {
+    // Install rate: last 30 days (or since the first install if newer)
+    const firstInstallDay = installList.length ? dayKey(Math.min(...installList.map(x => x.at))) : today
+    const basisDays = Math.max(1, Math.min(30, daysBetween(firstInstallDay, today) + 1))
+    const basisFrom = addDays(today, -(basisDays - 1))
+    const recent = installList.filter(x => dayKey(x.at) >= basisFrom).length
+    const lambda = recent / basisDays
+    const seLambda = Math.sqrt(Math.max(lambda, 0.5) / basisDays)   // how sure we are about the daily rate
+    const project = h => {
+      const mid = lambda * h
+      const sd = Math.sqrt(lambda * h + h * h * seLambda * seLambda)
+      return { mid, lo: Math.max(0, mid - Z90 * sd), hi: mid + Z90 * sd }
+    }
+    // Chart: last 30 days actual (cumulative), next 90 days expected
+    const points = []
+    let cum = installList.filter(x => dayKey(x.at) < last30).length
+    for (const d of days30) { cum += installsByDay[d] || 0; points.push({ day: d, short: shortDay(d), label: `${shortDay(d)}, ${d.slice(0, 4)}`, actual: cum, today: d === today }) }
+    for (let h = 1; h <= 90; h++) {
+      const d = addDays(today, h), p = project(h)
+      points.push({ day: d, short: shortDay(d), label: `${shortDay(d)}, ${d.slice(0, 4)}`, mid: instAll + p.mid, lo: instAll + p.lo, hi: instAll + p.hi })
+    }
+    const p30 = project(30), p90 = project(90)
+    const target = 100000
+    const daysTo = t => (lambda > 0 ? Math.ceil((t - instAll) / lambda) : null)
+    const fastRate = lambda + Z90 * seLambda, slowRate = Math.max(0.0001, lambda - Z90 * seLambda)
+    // "how long until": days → days / months / years, likely range underneath
+    const span = d => (d == null || !Number.isFinite(d) ? 'never at this pace' : d <= 60 ? `${fmt(d)} days` : d <= 730 ? `${fmt1(d / 30.4)} months` : `${fmt1(d / 365)} years`)
+    const reachTile = (t, name) => {
+      if (instAll >= t) return tile('Reached', name, `${fmt(instAll)} installs so far`)
+      if (!(lambda > 0)) return tile('–', name, 'needs installs in the last 30 days')
+      const left = t - instAll
+      const fast = Math.ceil(left / fastRate)
+      const slow = lambda - Z90 * seLambda > 0 ? Math.ceil(left / slowRate) : null
+      return tile(span(daysTo(t)), name, `around ${addDays(today, daysTo(t))} · likely ${span(fast)} – ${slow ? span(slow) : 'longer'}`)
+    }
+
+    // Rates for the "what if" calculator (last 30 days)
+    const dau = wilson(Math.round(U30.avgPeople), Math.max(instAll, Math.round(U30.avgPeople)))
+    const notif = wilson(P30.perm.granted, P30.total)
+    const d7 = retention[7]?.size ? wilson(retention[7].back, retention[7].size) : null
+    const rates = {
+      dau: dau && { p: dau.p, lo: dau.lo, hi: dau.hi },
+      opensPerPerson: U30.opensPerPerson || null,
+      minPerPerson: U30.peopleDays && U30.seconds ? U30.secPerPerson / 60 : null,
+      notif: notif && { p: notif.p, lo: notif.lo, hi: notif.hi },
+      d7: d7 && { p: d7.p, lo: d7.lo, hi: d7.hi },
+    }
+    const enough = instAll >= 5
+    body = `
+<h2>Install growth</h2>
+${!enough ? empty('Forecasts need at least 5 installs. Come back once more people have installed.') : `<div class="tiles">
+${tile(fmt1(lambda), 'installs per day now', `average of the last ${basisDays} day${basisDays === 1 ? '' : 's'}`, { hero: true })}
+${tile(fmt(instAll + p30.mid), 'installs in 30 days', `likely ${fmt(instAll + p30.lo)} – ${fmt(instAll + p30.hi)}`)}
+${tile(fmt(instAll + p90.mid), 'installs in 90 days', `likely ${fmt(instAll + p90.lo)} – ${fmt(instAll + p90.hi)}`)}
+${reachTile(10000, 'until 10k installs')}
+${reachTile(target, 'until 100k installs')}
+</div>
+${forecastChart(points, 'Total installs: last 30 days and next 90 days')}
+<p class="note">Assumes installs keep coming at today’s pace. The shaded “likely range” is wider when there is less data; promotions or viral moments would beat it.</p>`}
+
+<h2>What if you had more installs?</h2>
+<div class="calc">
+<label>If Dowatch24 had <input id="wi" type="number" min="1" step="1000" value="${target}"> installs</label>
+<div class="presets">${[10000, 50000, 100000, 500000, 1000000].map(v => `<button type="button" data-v="${v}">${v >= 1e6 ? v / 1e6 + 'M' : v / 1000 + 'k'}</button>`).join('')}</div>
+<div class="tiles est" id="wo" style="margin-top:12px"></div>
+<p class="note" id="wn"></p>
+</div>
+<script>(()=>{const R=${JSON.stringify(rates)};const i=document.getElementById('wi'),o=document.getElementById('wo'),note=document.getElementById('wn');
+const f=n=>Math.round(n).toLocaleString('en');const t=(n,l,s)=>'<div class="tile"><div class="n">'+n+'</div><div class="l">'+l+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>';
+const hrs=m=>m>=60?f(m/60)+' h':f(m)+' min';
+function run(){const N=Math.max(0,Number(i.value)||0);let h='';const miss=[];
+if(R.dau){const d=N*R.dau.p;h+=t(f(d),'people opening the app per day','likely '+f(N*R.dau.lo)+' – '+f(N*R.dau.hi));
+ if(R.opensPerPerson)h+=t(f(d*R.opensPerPerson),'app opens per day','likely '+f(N*R.dau.lo*R.opensPerPerson)+' – '+f(N*R.dau.hi*R.opensPerPerson));
+ if(R.minPerPerson)h+=t(hrs(d*R.minPerPerson),'watch time per day (everyone)','≈ '+(R.minPerPerson).toFixed(1)+' min per person');else miss.push('time in app');
+}else miss.push('daily users');
+if(R.notif)h+=t(f(N*R.notif.p),'can get your notifications','likely '+f(N*R.notif.lo)+' – '+f(N*R.notif.hi));else miss.push('notification share');
+if(R.d7)h+=t(f(N*R.d7.p),'still opening it on day 7','likely '+f(N*R.d7.lo)+' – '+f(N*R.d7.hi));else miss.push('day-7 return rate');
+o.innerHTML=h||'<div class="empty">Not enough data yet to estimate. Check back after a few days of app use.</div>';
+note.textContent='Based on the last 30 days of real usage, scaled up. Likely range = 90% (the real number should land inside it 9 times out of 10 if behaviour stays the same).'+(miss.length?' Still collecting: '+miss.join(', ')+'.':'')}
+i.addEventListener('input',run);document.querySelectorAll('.presets button').forEach(b=>b.addEventListener('click',()=>{i.value=b.dataset.v;run()}));run()})()</script>`
+  }
+
+  return page(body, 200, header)
 }

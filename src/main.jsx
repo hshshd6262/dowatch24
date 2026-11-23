@@ -3,11 +3,12 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { initPwaTracking } from './lib/analytics.js'
-import { reportInstall, reportOpen } from './lib/installs.js'
+import { reportInstall, reportOpen, trackTime } from './lib/installs.js'
 
 initPwaTracking()
 reportInstall()
 reportOpen()
+trackTime()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
