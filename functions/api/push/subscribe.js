@@ -1,6 +1,8 @@
 // POST /api/push/subscribe  { deviceId, token, platform, test? }
 // Saves the device, puts it on the "trending" topic, and sends a welcome notification.
-import { db, getAccessToken, sendPush, subscribeToTopic, SITE_URL } from '../../../server/google.js'
+import { DATABASE_URL, db, getAccessToken, sendPush, subscribeToTopic, SITE_URL } from '../../../server/google.js'
+
+const STATS_PLATFORM = { 'android-app': 'android', 'ios-app': 'ios', installed: 'desktop', browser: 'web' }
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -47,14 +49,32 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: true, test: true })
     }
 
-    // Welcome message only for a new device or a new token
+    // Welcome message only for a new device or a new token.
+    // The phone is already signed up at this point, so if Google won't deliver the welcome
+    // we still answer OK, and keep Google's exact reason for /stats ("Latest sign-up errors").
     if (!existing || existing.token !== token) {
-      await sendPush(auth, {
-        token,
-        title: "You're in! 🎉",
-        body: "We'll let you know what's trending and when new episodes drop.",
-        link: `${SITE_URL}/?utm_source=push&utm_medium=notification&utm_campaign=welcome`,
-      })
+      try {
+        await sendPush(auth, {
+          token,
+          title: "You're in! 🎉",
+          body: "We'll let you know what's trending and when new episodes drop.",
+          link: `${SITE_URL}/?utm_source=push&utm_medium=notification&utm_campaign=welcome`,
+        })
+      } catch (err) {
+        console.error('welcome push', err)
+        await fetch(`${DATABASE_URL}/notifyErrors.json?access_token=${auth.token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            at: Date.now(),
+            p: STATS_PLATFORM[kind] || 'web',
+            m: `signed up OK, but the welcome message was not delivered: ${String(err.message || err).slice(0, 250)}`,
+            ua: String(request.headers.get('user-agent') || '').slice(0, 200),
+            c: request.cf?.country || 'XX',
+          }),
+        }).catch(() => {})
+        return json({ ok: true, welcome: 'not delivered' })
+      }
     }
     return json({ ok: true })
   } catch (err) {
