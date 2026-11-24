@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { countAd } from '../lib/adStats.js'
 import styles from './AdBanner.module.css'
 
 const AD_WIDTH = 728
@@ -21,9 +22,36 @@ const adDoc = `<!doctype html>
 <script src="https://bauval.org/22/${AD_KEY}"></script>
 </body></html>`
 
-export default function AdBanner({ className = '' }) {
+// slot: which position on the page (for the ad counts on /stats)
+export default function AdBanner({ className = '', slot = 'other' }) {
   const boxRef = useRef(null)
+  const frameRef = useRef(null)
   const [scale, setScale] = useState(1)
+
+  // Count it once when at least half of it has been on screen for 1 second,
+  // and note whether the ad network actually put an ad inside
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el || !('IntersectionObserver' in window)) return
+    let timer = null
+    let done = false
+    const io = new IntersectionObserver(([entry]) => {
+      clearTimeout(timer)
+      if (done || !entry.isIntersecting) return
+      timer = setTimeout(() => {
+        done = true
+        io.disconnect()
+        let filled = false
+        try {
+          const doc = frameRef.current?.contentDocument
+          filled = Boolean(doc?.querySelector('iframe, img, ins, a[href]'))
+        } catch {}
+        countAd(slot, filled)
+      }, 1000)
+    }, { threshold: 0.5 })
+    io.observe(el)
+    return () => { clearTimeout(timer); io.disconnect() }
+  }, [slot])
 
   // Shrink the 728×90 banner to fit narrow screens
   useEffect(() => {
@@ -39,6 +67,7 @@ export default function AdBanner({ className = '' }) {
   return (
     <div className={`${styles.wrap} ${className}`} ref={boxRef} style={{ height: AD_HEIGHT * scale }}>
       <iframe
+        ref={frameRef}
         title="Advertisement"
         srcDoc={adDoc}
         width={AD_WIDTH}

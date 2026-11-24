@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { SERVERS, embedUrl } from '../lib/api.js'
 import ShareBar from './ShareBar.jsx'
 import AdBanner from './AdBanner.jsx'
+import { startWatching } from '../lib/watching.js'
 import ServerWarning from './ServerWarning.jsx'
 import BookmarkButton from './BookmarkButton.jsx'
 import { titlePath } from '../lib/links.js'
@@ -24,6 +25,21 @@ export default function Player({ src, embed, saveItem, title, year, rating, over
 
   const cancelAsk = useCallback(() => setAskFor(null), [])
 
+  // Live "who's watching what" on /stats while this movie / episode is open
+  const watchKey = embed ? `${embed.type}-${embed.id}-${embed.season || ''}-${embed.episode || ''}` : null
+  useEffect(() => {
+    if (!embed) return
+    return startWatching({
+      type: embed.type,
+      id: embed.id,
+      title,
+      season: embed.season,
+      episode: embed.episode,
+      poster: saveItem?.poster_path,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchKey])
+
   // Movies / episodes come with `embed` and can switch servers; trailers just have `src`
   const frameSrc = embed ? embedUrl(embed, server) : src
   if (!frameSrc) return null
@@ -44,7 +60,7 @@ export default function Player({ src, embed, saveItem, title, year, rating, over
   return (
     <div className={styles.wrap}>
       {/* Banner ads above the player and between the share bar and servers (not for trailers) */}
-      {embed && <AdBanner className={styles.adTop} />}
+      {embed && <AdBanner slot="above-player" className={styles.adTop} />}
 
       <div className={styles.meta}>
         <div className={styles.metaTop}>
@@ -84,7 +100,7 @@ export default function Player({ src, embed, saveItem, title, year, rating, over
         />
       )}
 
-      {embed && <AdBanner className={styles.adMiddle} />}
+      {embed && <AdBanner slot="above-servers" className={styles.adMiddle} />}
 
       {embed && (
         <div className={styles.servers}>
