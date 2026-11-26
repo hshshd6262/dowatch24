@@ -13,7 +13,7 @@ const RANGES = { today: 'Today', yesterday: 'Yesterday', '7d': '7 days', '30d': 
 const TABS = { overview: 'Overview', live: 'Live', installs: 'Installs', usage: 'Usage', retention: 'Return rate', notifications: 'Notifications', ads: 'Ads', locations: 'Locations', forecast: 'Forecast' }
 const AD_SLOTS = { top: 'Top of page', 'under-hero': 'Under the slider', 'above-player': 'Above the player', 'above-servers': 'Above the servers', 'tv-above-share': 'TV: above share bar', other: 'Other' }
 const WATCH_PLATFORMS = { android: 'Android app', ios: 'iPhone app', desktop: 'Computer app', web: 'Website' }
-const LIVE_MS = 150 * 1000   // a check-in in the last 2.5 minutes = watching now
+const LIVE_MS = 6.5 * 60 * 1000   // the player checks in every 5 min: a check-in in the last 6½ min = watching now
 const posterImg = ps => (ps ? `<img src="https://image.tmdb.org/t/p/w92${esc(ps)}" alt="" width="36" height="54" loading="lazy" style="border-radius:6px;object-fit:cover;background:#222;flex:none">` : '<span style="width:36px;height:54px;border-radius:6px;background:#1c1c1c;flex:none"></span>')
 const RETURN_DAYS = [1, 3, 7, 14, 30]
 const Z90 = 1.645   // 90% likely range
@@ -338,7 +338,7 @@ ${recentErrors.map(e => `<tr><td style="white-space:nowrap">${esc(when(e.at))}</
   }
 
   if (tab === 'live') {
-    // Watching right now (checked in within the last 2.5 minutes)
+    // Watching right now (checked in within the last 6½ minutes)
     const byTitle = new Map()
     for (const v of liveNow) {
       const k2 = `${v.t}_${v.id}`
@@ -365,7 +365,7 @@ ${rows.map(([k2, n], i) => { const m = titles[k2] || {}; const id = k2.split('_'
     body = `
 <h2>Watching right now</h2>
 <div class="tiles">
-${tile(fmt(liveNow.length), 'people watching now', 'player open in the last 2½ minutes', { hero: true })}
+${tile(fmt(liveNow.length), 'people watching now', 'player open, checked in the last 6½ min', { hero: true })}
 ${tile(fmt(nowRows.length), 'different titles', '')}
 ${Object.entries(WATCH_PLATFORMS).map(([p, name]) => tile(fmt(liveNow.filter(v => v.p === p).length), name)).join('')}
 </div>
@@ -375,11 +375,11 @@ ${nowRows.map(g => `<tr><td><div style="display:flex;gap:10px;align-items:center
 <td class="num" style="font-size:18px;font-weight:800">${fmt(g.people)}</td>
 <td style="font-size:12.5px;color:var(--ink2)">${top(g.cc, ([cc, c]) => `${flag(cc)} ${c}`)}<div style="color:var(--ink3)">${top(g.plat, ([p, c]) => `${esc(WATCH_PLATFORMS[p] || p)} ${c}`)}</div></td></tr>`).join('')}
 </tbody></table></div>` : `<div style="margin-top:12px">${empty('Nobody is watching right now.')}</div>`}
-<p class="note">Updates by itself every 30 seconds. “Watching” = a movie or episode is open in the player and the page is on screen (the video itself comes from another site, so play/pause can’t be seen).</p>
+<p class="note">Updates by itself every minute while this tab is open. “Watching” = a movie or episode is open in the player and the page is on screen (the video itself comes from another site, so play/pause can’t be seen).</p>
 ${rangeBar}
 <div class="cols">${rankList('movie', 'Most watched movies')}${rankList('tv', 'Most watched TV shows')}</div>
 <p class="note">Counts how many times each title was opened in the player in this period (every episode counts for its show).</p>
-<script>setTimeout(()=>location.reload(),30000)</script>`
+<script>setInterval(()=>{if(document.visibilityState==='visible')location.reload()},60000)</script>`
   }
 
   if (tab === 'ads') {

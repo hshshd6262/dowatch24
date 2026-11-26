@@ -18,8 +18,9 @@ function flush() {
   fetch('/api/ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {})
 }
 
-setInterval(flush, 20 * 1000)
-setTimeout(flush, 4000)
+// Each send is a server request: batch them (first after 30 s, then at most every 2 min, plus when leaving)
+setInterval(flush, 2 * 60 * 1000)
+setTimeout(flush, 30 * 1000)
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush() })
 window.addEventListener('pagehide', flush)
 

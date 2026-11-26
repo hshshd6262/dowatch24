@@ -78,5 +78,5 @@ export function trackTime() {
     else visibleSince = Date.now()
   })
   window.addEventListener('pagehide', send)
-  setInterval(() => { if (document.visibilityState === 'visible') send() }, 5 * 60 * 1000)
+  setInterval(() => { if (document.visibilityState === 'visible') send() }, 15 * 60 * 1000)   // long sessions: every 15 min
 }

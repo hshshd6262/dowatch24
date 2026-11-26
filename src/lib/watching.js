@@ -1,9 +1,10 @@
 // "Who's watching what" for /stats: while the player is open on a movie / episode and the page
-// is on screen, check in every minute. Closing the player removes the live entry.
+// is on screen, check in every 5 minutes. Closing the player removes the live entry.
 import { deviceId, platform } from './push.js'
 
 const KIND = { 'android-app': 'android', 'ios-app': 'ios', installed: 'desktop', browser: 'web' }
-const BEAT_MS = 60 * 1000
+// Check in every 5 minutes (each check-in is a server request, so keep these rare)
+const BEAT_MS = 5 * 60 * 1000
 
 function send(body) {
   const json = JSON.stringify(body)
@@ -28,10 +29,19 @@ export function startWatching(info) {
   }
   send({ ...base, action: 'start' })
   let timer = null
-  const beat = () => { if (document.visibilityState === 'visible') send({ ...base, action: 'beat' }) }
+  let lastSent = Date.now()
+  const beat = () => {
+    if (document.visibilityState !== 'visible') return
+    lastSent = Date.now()
+    send({ ...base, action: 'beat' })
+  }
   const schedule = () => { clearInterval(timer); timer = setInterval(beat, BEAT_MS) }
+  // Coming back to the page only checks in if the last check-in is getting old
   const onVis = () => {
-    if (document.visibilityState === 'visible') { beat(); schedule() } else clearInterval(timer)
+    if (document.visibilityState === 'visible') {
+      if (Date.now() - lastSent > BEAT_MS - 60 * 1000) beat()
+      schedule()
+    } else clearInterval(timer)
   }
   schedule()
   document.addEventListener('visibilitychange', onVis)
