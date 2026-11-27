@@ -27,12 +27,37 @@ export async function onRequestPost({ request, env }) {
     const existing = await db(auth, path)
     const now = Date.now()
 
+    // Keeps Google's exact reason on /stats ("Latest sign-up errors") when something is refused
+    const logError = message => fetch(`${DATABASE_URL}/notifyErrors.json?access_token=${auth.token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        at: Date.now(),
+        p: STATS_PLATFORM[kind] || 'web',
+        m: String(message).slice(0, 300),
+        ua: String(request.headers.get('user-agent') || '').slice(0, 200),
+        c: request.cf?.country || 'XX',
+      }),
+    }).catch(() => {})
+
+    // Join the "trending" list that campaigns go to. If Google refuses, still save the phone
+    // (topic: false) and try again the next time it checks in (about once a day).
     step = 'joining the trending topic'
-    await subscribeToTopic(auth, token, 'trending')
+    let topic = true
+    if (!(existing?.topic === true && existing.token === token)) {
+      try {
+        await subscribeToTopic(auth, token, 'trending')
+      } catch (err) {
+        topic = false
+        console.error('topic join', err)
+        await logError(`saved, but joining the campaign list failed (will retry): ${String(err.message || err).slice(0, 220)}`)
+      }
+    }
     step = 'database save'
     await db(auth, path, 'PATCH', {
       token,
       platform: kind,
+      topic,
       createdAt: existing?.createdAt || now,
       lastSeen: now,
     })
@@ -62,18 +87,8 @@ export async function onRequestPost({ request, env }) {
         })
       } catch (err) {
         console.error('welcome push', err)
-        await fetch(`${DATABASE_URL}/notifyErrors.json?access_token=${auth.token}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            at: Date.now(),
-            p: STATS_PLATFORM[kind] || 'web',
-            m: `signed up OK, but the welcome message was not delivered: ${String(err.message || err).slice(0, 250)}`,
-            ua: String(request.headers.get('user-agent') || '').slice(0, 200),
-            c: request.cf?.country || 'XX',
-          }),
-        }).catch(() => {})
-        return json({ ok: true, welcome: 'not delivered' })
+        await logError(`signed up OK, but the welcome message was not delivered: ${String(err.message || err).slice(0, 220)}`)
+        return json({ ok: true, topic, welcome: 'not delivered' })
       }
     }
     return json({ ok: true })

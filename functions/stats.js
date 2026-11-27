@@ -185,10 +185,11 @@ export async function onRequestGet({ request, env }) {
 
   // ----- Notifications -----
   const push = { 'android-app': 0, 'ios-app': 0, installed: 0, browser: 0 }
-  let pushAll = 0
+  let pushAll = 0, notOnList = 0
   for (const x of Object.values(devices)) {
     if (!x?.token) continue
     pushAll++
+    if (x.topic === false) notOnList++   // Google refused the campaign list; retried daily
     if (inRange(x.createdAt)) push[x.platform in push ? x.platform : 'browser']++
   }
   const pushTotal = sumObj(push)
@@ -295,6 +296,7 @@ ${cohortRows.map(row => `<tr><td>${esc(row.day)}</td><td class="num">${fmt(row.s
 <h2>Notifications turned on</h2><div class="tiles">
 ${tile(fmt(pushTotal), 'phones signed up', `${fmt(pushAll)} all time`, { hero: true })}
 ${Object.entries(PUSH_PLATFORMS).map(([p, name]) => tile(fmt(push[p]), name)).join('')}
+${notOnList ? tile(fmt(notOnList), 'waiting to join campaign list', 'Google refused once; retried automatically each day') : ''}
 </div>
 <h2>Status of people opening the app</h2>
 ${P.total ? `<div class="tiles">${Object.entries(PERM_LABELS).map(([s, [name, hint]]) => tile(pct(P.perm[s], P.total), name, `${fmt(P.perm[s])} · ${hint}`, { hero: s === 'granted' })).join('')}</div>` : empty('No data yet for this period.')}
