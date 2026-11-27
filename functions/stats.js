@@ -10,11 +10,7 @@ const NEPAL_OFFSET = 5.75 * 60 * 60 * 1000
 const PLATFORMS = { android: 'Android app', ios: 'iPhone app', desktop: 'Computer app' }
 const PUSH_PLATFORMS = { 'android-app': 'Android app', 'ios-app': 'iPhone app', installed: 'Computer app', browser: 'Website' }
 const RANGES = { today: 'Today', yesterday: 'Yesterday', '7d': '7 days', '30d': '30 days', '1y': '1 year', all: 'All time' }
-const TABS = { overview: 'Overview', live: 'Live', installs: 'Installs', usage: 'Usage', retention: 'Return rate', notifications: 'Notifications', ads: 'Ads', locations: 'Locations', forecast: 'Forecast' }
-const AD_SLOTS = { top: 'Top of page', 'under-hero': 'Under the slider', 'above-player': 'Above the player', 'above-servers': 'Above the servers', 'tv-above-share': 'TV: above share bar', other: 'Other' }
-const WATCH_PLATFORMS = { android: 'Android app', ios: 'iPhone app', desktop: 'Computer app', web: 'Website' }
-const LIVE_MS = 6.5 * 60 * 1000   // the player checks in every 5 min: a check-in in the last 6½ min = watching now
-const posterImg = ps => (ps ? `<img src="https://image.tmdb.org/t/p/w92${esc(ps)}" alt="" width="36" height="54" loading="lazy" style="border-radius:6px;object-fit:cover;background:#222;flex:none">` : '<span style="width:36px;height:54px;border-radius:6px;background:#1c1c1c;flex:none"></span>')
+const TABS = { overview: 'Overview', installs: 'Installs', usage: 'Usage', retention: 'Return rate', notifications: 'Notifications', locations: 'Locations', forecast: 'Forecast' }
 const RETURN_DAYS = [1, 3, 7, 14, 30]
 const Z90 = 1.645   // 90% likely range
 
@@ -84,7 +80,7 @@ export async function onRequestGet({ request, env }) {
   const last30 = addDays(today, -29)
 
   // ----- Load -----
-  let installs, devices, daily, errors, cohorts, since, live = {}, titles = {}
+  let installs, devices, daily, errors, cohorts, since
   try {
     const auth = await getAccessToken(env)
     ;[installs, devices, daily, errors, cohorts, since] = await Promise.all([
@@ -95,21 +91,6 @@ export async function onRequestGet({ request, env }) {
       getJson(auth, 'cohort').catch(() => ({})),
       getJson(auth, 'retentionDays', { orderBy: '"$key"', limitToFirst: '1' }).then(v => Object.keys(v)[0] || null).catch(() => null),
     ])
-    if (tab === 'live' || tab === 'overview') {
-      ;[live, titles] = await Promise.all([
-        getJson(auth, 'live').catch(() => ({})),
-        tab === 'live' ? getJson(auth, 'titles').catch(() => ({})) : {},
-      ])
-      // tidy up: drop "watching" entries older than a day
-      const stale = Object.entries(live).filter(([, v]) => !v?.at || Date.now() - v.at > DAY).map(([id]) => id)
-      if (stale.length) {
-        fetch(`${DATABASE_URL}/.json?access_token=${auth.token}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Object.fromEntries(stale.slice(0, 500).map(id => [`live/${id}`, null]))),
-        }).catch(() => {})
-      }
-    }
   } catch (err) {
     return page(`<h1>Couldn't load stats</h1><p>${esc(err.message || err)}</p>`, 500)
   }
@@ -223,8 +204,6 @@ export async function onRequestGet({ request, env }) {
   const P = permOf(days), P30 = permOf(days30)
   const recentErrors = Object.values(errors).filter(e => e && inRange(e.at)).sort((a, b) => b.at - a.at).slice(0, 15)
 
-  const liveNow = Object.values(live).filter(v => v && v.at && Date.now() - v.at < LIVE_MS)
-
   // ----- Page shell -----
   const k = encodeURIComponent(key)
   const rangeQ = r === 'custom' ? `r=custom&from=${from}&to=${to}` : `r=${r}`
@@ -249,7 +228,6 @@ export async function onRequestGet({ request, env }) {
     body = `${rangeBar}
 <h2>At a glance</h2><div class="tiles">
 ${tile(fmt(instTotal), 'new installs', `${fmt(instAll)} all time`, { hero: true, href: href('installs') })}
-${tile(fmt(liveNow.length), 'watching right now', 'tap to see what', { href: href('live') })}
 ${tile(fmt(Math.round(U.avgPeople)), 'people per day', 'average, opened the app', { href: href('usage') })}
 ${tile(U.seconds ? minutes(U.secPerPerson) : '–', 'time per person per day', 'average time in the app', { href: href('usage') })}
 ${tile(retTile(1), 'come back on day 1', retention[1]?.size ? `of ${fmt(retention[1].size)} installs` : 'needs a few days of data', { href: href('retention') })}
@@ -335,76 +313,6 @@ ${recentErrors.map(e => `<tr><td style="white-space:nowrap">${esc(when(e.at))}</
 <div class="cols">${rankTable('Installs by country', countryRows(instCountry), 'Installs')}${rankTable('App opens by country', countryRows(U.oc), 'Opens')}</div>
 <div class="cols">${rankTable('Installs by city', cityRows, 'Installs')}${rankTable('People by country', countryRows(U.uc), 'Person-days')}</div>
 <p class="note">Country and city come from Cloudflare. Installs from before location tracking show as Unknown.</p>`
-  }
-
-  if (tab === 'live') {
-    // Watching right now (checked in within the last 6½ minutes)
-    const byTitle = new Map()
-    for (const v of liveNow) {
-      const k2 = `${v.t}_${v.id}`
-      if (!byTitle.has(k2)) byTitle.set(k2, { t: v.t, id: v.id, n: v.n, ps: v.ps, people: 0, eps: {}, plat: {}, cc: {} })
-      const g = byTitle.get(k2)
-      g.people++
-      if (v.s) { const ep = `S${v.s} E${v.e}`; g.eps[ep] = (g.eps[ep] || 0) + 1 }
-      g.plat[v.p] = (g.plat[v.p] || 0) + 1
-      g.cc[v.c || 'XX'] = (g.cc[v.c || 'XX'] || 0) + 1
-    }
-    const nowRows = [...byTitle.values()].sort((a, b) => b.people - a.people)
-    const top = (o, fn) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 3).map(fn).join(', ')
-    // Most watched in the range (plays = times a movie / episode was opened)
-    const plays = {}
-    for (const d of days) addInto(plays, daily[d]?.w)
-    const ranked = type => Object.entries(plays).filter(([k2]) => k2.startsWith(type + '_')).sort((a, b) => b[1] - a[1]).slice(0, 15)
-    const rankList = (type, name) => {
-      const rows = ranked(type)
-      const max = rows[0]?.[1] || 1
-      return `<div><h2>${name}</h2>${rows.length ? `<div class="tbl"><table><tbody>
-${rows.map(([k2, n], i) => { const m = titles[k2] || {}; const id = k2.split('_')[1]; return `<tr><td style="width:28px;color:var(--ink3)">${i + 1}</td><td><div style="display:flex;gap:10px;align-items:center">${posterImg(m.ps)}<div style="min-width:0"><a href="https://dowatch24.com/${type}/${esc(id)}" target="_blank" rel="noopener" style="text-decoration:none;font-weight:600">${esc(m.n || `#${id}`)}</a><div class="meter" style="width:${Math.max(4, (n / max) * 100).toFixed(1)}%"></div></div></div></td><td class="num">${fmt(n)}</td></tr>` }).join('')}
-</tbody></table></div>` : empty('Nothing watched in this period yet.')}</div>`
-    }
-    body = `
-<h2>Watching right now</h2>
-<div class="tiles">
-${tile(fmt(liveNow.length), 'people watching now', 'player open, checked in the last 6½ min', { hero: true })}
-${tile(fmt(nowRows.length), 'different titles', '')}
-${Object.entries(WATCH_PLATFORMS).map(([p, name]) => tile(fmt(liveNow.filter(v => v.p === p).length), name)).join('')}
-</div>
-${nowRows.length ? `<div class="tbl" style="margin-top:12px"><table><thead><tr><th>Title</th><th class="num">Watching</th><th>Where</th></tr></thead><tbody>
-${nowRows.map(g => `<tr><td><div style="display:flex;gap:10px;align-items:center">${posterImg(g.ps)}<div><a href="https://dowatch24.com/${g.t}/${g.id}" target="_blank" rel="noopener" style="text-decoration:none;font-weight:600">${esc(g.n || `#${g.id}`)}</a>
-<div style="color:var(--ink3);font-size:12px">${g.t === 'tv' ? 'TV' : 'Movie'}${Object.keys(g.eps).length ? ' · ' + esc(top(g.eps, ([ep, c]) => `${ep}${c > 1 ? ` (${c})` : ''}`)) : ''}</div></div></div></td>
-<td class="num" style="font-size:18px;font-weight:800">${fmt(g.people)}</td>
-<td style="font-size:12.5px;color:var(--ink2)">${top(g.cc, ([cc, c]) => `${flag(cc)} ${c}`)}<div style="color:var(--ink3)">${top(g.plat, ([p, c]) => `${esc(WATCH_PLATFORMS[p] || p)} ${c}`)}</div></td></tr>`).join('')}
-</tbody></table></div>` : `<div style="margin-top:12px">${empty('Nobody is watching right now.')}</div>`}
-<p class="note">Updates by itself every minute while this tab is open. “Watching” = a movie or episode is open in the player and the page is on screen (the video itself comes from another site, so play/pause can’t be seen).</p>
-${rangeBar}
-<div class="cols">${rankList('movie', 'Most watched movies')}${rankList('tv', 'Most watched TV shows')}</div>
-<p class="note">Counts how many times each title was opened in the player in this period (every episode counts for its show).</p>
-<script>setInterval(()=>{if(document.visibilityState==='visible')location.reload()},60000)</script>`
-  }
-
-  if (tab === 'ads') {
-    const seen = {}, filled = {}, pl = {}
-    const perDay = days.map(d => {
-      const x = daily[d] || {}
-      addInto(seen, x.ad); addInto(filled, x.adf); addInto(pl, x.pl)
-      return { day: d, ads: sumObj(x.ad), filled: sumObj(x.adf), loads: sumObj(x.pl) }
-    })
-    const seenTotal = sumObj(seen), filledTotal = sumObj(filled), loads = sumObj(pl)
-    body = `${rangeBar}
-<h2>Ad impressions</h2><div class="tiles">
-${tile(fmt(filledTotal), 'ad impressions', 'banners on screen with an ad inside', { hero: true })}
-${tile(fmt(seenTotal), 'banner spots seen', '≥50% on screen for 1 second')}
-${tile(seenTotal ? pct(filledTotal, seenTotal) : '–', 'filled', 'the rest were empty or blocked (ad blockers)')}
-${tile(fmt(loads), 'page loads', 'each is a chance for the popunder')}
-${tile(loads ? fmt1(seenTotal / loads) : '–', 'banners seen per page load', '')}
-</div>
-<h2>Ad impressions ${unit}</h2>${seenTotal ? barChart(buckets(perDay, p => p.filled, p => [`${fmt(p.filled)} impressions`, `${fmt(p.ads)} banners seen`, `${fmt(p.loads)} page loads`]), `Ad impressions ${unit}`) : empty('No ad data in this period yet. Counting starts with this update.')}
-<h2>By position</h2><div class="tbl"><table><thead><tr><th>Banner</th><th class="num">Seen</th><th class="num">With an ad</th><th class="num">Filled</th></tr></thead><tbody>
-${Object.entries(AD_SLOTS).filter(([s]) => s !== 'other' || seen[s]).map(([s, name]) => `<tr><td>${name}</td><td class="num">${fmt(seen[s])}</td><td class="num">${fmt(filled[s])}</td><td class="num">${seen[s] ? pct(filled[s] || 0, seen[s]) : '–'}</td></tr>`).join('')}
-</tbody></table></div>
-<h2>Page loads by platform</h2><div class="tiles">${Object.entries(WATCH_PLATFORMS).map(([p, name]) => tile(fmt(pl[p]), name)).join('')}</div>
-<p class="note">Your ad network’s dashboard is the official number for earnings; these are counted by the site itself, so expect small differences.
-The popunder is loaded by the ad network’s own script, so it can’t be counted directly; page loads show how many chances it had.</p>`
   }
 
   if (tab === 'forecast') {

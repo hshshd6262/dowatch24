@@ -209,7 +209,7 @@ export default function TV({ showSearch, playRequest, onOpen, onTitleOpen }) {
           {!player?.embed && (
             <div className={styles.shareGap}>
               {/* Banner between the details panel and the share bar */}
-              <AdBanner slot="tv-above-share" className={styles.adAboveShare} />
+              <AdBanner className={styles.adAboveShare} />
               <ShareBar title={selected.name} shareKey={`tv-${selected.id}`} sharePath={titlePath('tv', selected.id)} />
             </div>
           )}

@@ -168,10 +168,10 @@ export default function App() {
       </header>
 
       <main className={styles.main}>
-  <AdBanner slot="top" />
+  <AdBanner />
   {!titleOpen && <Hero onPlay={item => openItem(item, true)} />}
   {/* Banner between the hero and Trending Now (hidden with the hero) */}
-  {!titleOpen && <AdBanner slot="under-hero" className={styles.adUnderHero} />}
+  {!titleOpen && <AdBanner className={styles.adUnderHero} />}
 
   {tab === 'movies'
     ? <Movies key={homeKey} showSearch={searchOpen} playRequest={playRequest} onOpen={openItem} onTitleOpen={item => handleTitleOpen('movie', item)} />
